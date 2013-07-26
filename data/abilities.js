@@ -40,6 +40,48 @@ Ratings and how they work:
 */
 
 exports.BattleAbilities = {
+        sweetveil: {
+        	desc: "Prevents an ally from falling asleep in a double or triple battle.",
+		shortDesc: "In a double or triple battle, this Pokemon's allies are immune to sleep.",
+		onImmunity: function(source, target, type) {
+			if (target !== this.effectData.target && target.side === this.effectData.target.side) {
+				if (type === 'slp') {
+					this.debug('Sweet Veil Immunity')
+					return false;
+				}
+			}
+		},
+		id: "sweetveil",
+		name: "Sweet Veil",
+		rating: 2,
+		num: -5
+        },
+        fairyaura: {
+        	desc: "Increases the power of all Fairy-type attacks in battle.",
+        	shortDesc: "Increases power of Fairy-type attacks.",
+        	onBasePower: function(basePower, user, target, move) {
+			if (move && move.type === 'Fairy') {
+				return basePower * 1.5; 
+			}
+		},
+		id: "fairyaura",
+		name: "Fairy Aura",
+		rating: 4,
+		num: -6
+        },
+        darkaura: {
+        	desc: "Increases the power of all Dark-type attacks in battle.",
+        	shortDesc: "Increases power of Dark-type attacks.",
+        	onBasePower: function(basePower, user, target, move) {
+			if (move && move.type === 'Dark') {
+				return basePower * 1.5; 
+			}
+		},
+		id: "darkaura",
+		name: "Dark Aura",
+		rating: 4,
+		num: -7
+        },
 	"adaptability": {
 		desc: "This Pokemon's attacks that receive STAB (Same Type Attack Bonus) are increased from 50% to 100%.",
 		shortDesc: "This Pokemon's same-type attack bonus (STAB) is increased from 1.5x to 2x.",

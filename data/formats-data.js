@@ -1,4 +1,28 @@
 exports.BattleFormatsData = {
+	xerneas: {
+		inherit: true,
+		viableMoves: {"aurasphere":1,"roost":1,"oblivionwing":1,"darkpulse":1,"hurricane":1,"airslash":1,"focusblast":1,"superpower":1,"toxic":1},
+		dreamWorldRelease: true,                
+			tier: 'Uber'
+	},
+	yveltal: {
+		inherit: true,
+		viableMoves: {"aurasphere":1,"recover":1,"geomancy":1,"gigadrain":1,"leafstorm":1,"fairywind":1,"focusblast":1,"calmmind":1,"toxic":1},
+		dreamWorldRelease: true,                
+		tier: 'Uber'
+	},
+	fletchling: {
+		inherit: true,
+		viableMoves: {"burningskies":1,"bravebird":1,"flamecharge":1,"roost":1},
+		dreamWorldRelease: true,
+		tier: 'LC',
+	},
+	talonflame: {
+		inherit: true,
+		viableMoves: {"burningskies":1,"bravebird":1,"flamecharge":1,"roost":1},
+		dreamWorldRelease: true,
+		tier: 'UU',                
+	},         
 	missingno: {
 		isNonstandard: true,
 		tier: ""
@@ -1203,8 +1227,7 @@ exports.BattleFormatsData = {
 		viableMoves: {"quickattack":1,"return":1,"bite":1,"batonpass":1,"irontail":1,"yawn":1,"protect":1,"wish":1},
 		eventPokemon: [
 			{"generation":4,"level":10,"gender":"F","nature":"Lonely","abilities":["adaptability"],"moves":["covet","bite","helpinghand","attract"],"pokeball":"cherishball"},
-			{"generation":4,"level":50,"shiny":true,"gender":"M","nature":"Hardy","abilities":["adaptability"],"moves":["irontail","trumpcard","flail","quickattack"],"pokeball":"cherishball"},
-			{"generation":5,"level":50,"gender":"F","nature":"Hardy","isDW":false,"abilities":["adaptability"],"moves":["sing","return","echoedvoice","attract"],"pokeball":"cherishball"}
+			{"generation":4,"level":50,"shiny":true,"gender":"M","nature":"Hardy","abilities":["adaptability"],"moves":["irontail","trumpcard","flail","quickattack"],"pokeball":"cherishball"}
 		],
 		dreamWorldRelease: true,
 		tier: "LC"
@@ -2911,7 +2934,7 @@ exports.BattleFormatsData = {
 			{"generation":4,"level":62,"nature":"Brave","moves":["bulletpunch","meteormash","hammerarm","zenheadbutt"],"pokeball":"cherishball"},
 			{"generation":5,"level":50,"isDW":false,"moves":["meteormash","earthquake","bulletpunch","hammerarm"],"pokeball":"cherishball"},
 			{"generation":5,"level":100,"isDW":false,"moves":["bulletpunch","zenheadbutt","hammerarm","icepunch"],"pokeball":"cherishball"},
-			{"generation":5,"level":45,"isDW":false,"moves":["earthquake","zenheadbutt","protect","meteormash"]},
+			{"generation":5,"level":45,"isDW":false,"moves":["meteormash","earthquake","zenheadbutt","protect"]},
 			{"generation":5,"level":45,"isDW":true,"moves":["irondefense","agility","hammerarm","doubleedge"]},
 			{"generation":5,"level":45,"isDW":true,"moves":["psychic","meteormash","hammerarm","doubleedge"]}
 		],
@@ -2982,13 +3005,12 @@ exports.BattleFormatsData = {
 		tier: "Uber"
 	},
 	jirachi: {
-		viableMoves: {"bodyslam":1,"ironhead":1,"firepunch":1,"thunderwave":1,"stealthrock":1,"wish":1,"uturn":1,"calmmind":1,"psychic":1,"thunder":1,"icepunch":1,"flashcannon":1,"meteormash":1},
+		viableMoves: {"bodyslam":1,"ironhead":1,"firepunch":1,"thunderwave":1,"stealthrock":1,"wish":1,"uturn":1,"calmmind":1,"psychic":1,"thunder":1,"icepunch":1,"flashcannon":1},
 		eventPokemon: [
 			{"generation":3,"level":5,"moves":["wish","confusion","rest"]},
 			{"generation":3,"level":30,"moves":["helpinghand","psychic","refresh","rest"]},
 			{"generation":4,"level":5,"moves":["wish","confusion","rest"],"pokeball":"cherishball"},
-			{"generation":4,"level":5,"moves":["wish","confusion","rest","dracometeor"],"pokeball":"cherishball"},
-			{"generation":5,"level":50,"moves":["healingwish","psychic","swift","meteormash"],"pokeball":"cherishball"}
+			{"generation":4,"level":5,"moves":["wish","confusion","rest","dracometeor"],"pokeball":"cherishball"}
 		],
 		tier: "OU"
 	},
@@ -4592,7 +4614,7 @@ exports.BattleFormatsData = {
 		viableMoves: {"earthpower":1,"focusblast":1,"rockpolish":1,"hiddenpowerice":1,"psychic":1},
 		dreamWorldRelease: true,
 		dreamWorldPokeball: 'dreamball',
-		tier: "Uber"
+		tier: "OU"
 	},
 	landorustherian: {
 		viableMoves: {"rockpolish":1,"earthquake":1,"stoneedge":1,"uturn":1,"superpower":1,"stealthrock":1},
@@ -4643,8 +4665,7 @@ exports.BattleFormatsData = {
 		viableMoves: {"uturn":1,"bugbuzz":1,"icebeam":1,"flamethrower":1,"thunderbolt":1},
 		eventPokemon: [
 			{"generation":5,"level":50,"moves":["technoblast","magnetbomb","solarbeam","signalbeam"],"pokeball":"cherishball"},
-			{"generation":5,"level":15,"moves":["technoblast","magnetbomb","solarbeam","signalbeam"],"pokeball":"cherishball"},
-			{"generation":5,"level":100,"shiny":true,"nature":"Hasty","moves":["extremespeed","technoblast","blazekick","shiftgear"],"pokeball":"cherishball"}
+			{"generation":5,"level":15,"moves":["technoblast","magnetbomb","solarbeam","signalbeam"],"pokeball":"cherishball"}
 		],
 		dreamWorldPokeball: 'cherishball',
 		tier: "Uber"

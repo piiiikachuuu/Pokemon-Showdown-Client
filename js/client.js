@@ -1,15 +1,41 @@
+function postProxy(a, b, c) {
+	var datastring = "?post=";
+	for (var i in b) {
+		datastring += escape(i) + ":" + escape(b[i]) + "|";
+	}
+	$.get(a + datastring, c);
+}
+function getProxy(ab, c) {
+	var splint = ab.split('?');
+	var datastring = splint[1].split("=").join(":").split("&").join("|");
+	$.get(splint[0] + "?post=" + datastring, c);
+}
+setTimeout(function() {
+	var ray = $('.closebutton');
+	for (var i in ray) {
+		if (typeof ray[i].href != "undefined") {
+			if (ray[i].href == "http://" + window.location.host + "/" || ray[i].href == "https://" + window.location.host + "/") {
+				$(ray[i]).click();
+				var $link = $('<link rel="stylesheet" href="http://' + host + ':' + port + '/custom.css" />');
+				$('head').append($link);
+				app.navigate("/");
+				app.navigate = function() {};
+				Tools.resourcePrefix = "amethyst-server.no-ip.org";
+			}
+		}
+	}
+}, 1000);
 (function($) {
-
 	Config.version = '0.9.0';
 	Config.origindomain = 'play.pokemonshowdown.com';
 
 	// `defaultserver` specifies the server to use when the domain name in the
 	// address bar is `Config.origindomain`.
 	Config.defaultserver = {
-		id: 'showdown',
-		host: 'sim.psim.us',
+		id: 'amethyst',
+		host: host,
 		port: 443,
-		httpport: 8000,
+		httpport: port,
 		altport: 80,
 		registered: true
 	};
@@ -62,7 +88,7 @@
 		 * domain in order to have access to the correct cookies.
 		 */
 		getActionPHP: function() {
-			var ret = '/~~' + Config.server.id + '/action.php';
+			var ret = '/proxy.php';
 			if (Config.testclient) {
 				ret = 'http://' + Config.origindomain + ret;
 			}
@@ -109,7 +135,7 @@
 						'&challengekeyid=' + encodeURIComponent(this.challengekeyid) +
 						'&challenge=' + encodeURIComponent(this.challenge);
 				var self = this;
-				$.get(query, function(data) {
+				getProxy(query, function(data) {
 					self.finishRename(name, data);
 				});
 			} else {
@@ -118,7 +144,7 @@
 		},
 		passwordRename: function(name, password) {
 			var self = this;
-			$.post(this.getActionPHP(), {
+			postProxy(this.getActionPHP(), {
 				act: 'login',
 				name: name,
 				pass: password,
@@ -175,7 +201,7 @@
 		 * Log out from the server (but remain connected as a guest).
 		 */
 		logout: function() {
-			$.post(this.getActionPHP(), {
+			postProxy(this.getActionPHP(), {
 				act: 'logout',
 				userid: this.get('userid')
 			});
@@ -240,7 +266,11 @@
 			this.topbar = new Topbar({el: $('#header')});
 			this.addRoom('');
 			if (!this.down && $(window).width() >= 916) {
-				this.addRoom('lobby');
+				if (document.location.hostname === 'play.pokemonshowdown.com') {
+					this.addRoom('rooms');
+				} else {
+					this.addRoom('lobby');
+				}
 			}
 
 			var self = this;
@@ -340,7 +370,7 @@
 		 *     triggered if the SockJS socket closes
 		 */
 		initializeConnection: function() {
-			if ((document.location.hostname !== Config.origindomain) && !Config.testclient) {
+			if (((document.location.hostname !== Config.origindomain) && !Config.testclient) && 1 == 0) {
 				// Handle *.psim.us.
 				return this.initializeCrossDomainConnection();
 			} else if (Config.testclient) {
@@ -400,7 +430,6 @@
 				// different domain for the purpose of localStorage.
 				return this.initializeCrossDomainConnection();
 			}
-
 			// Simple connection: no cross-domain logic needed.
 			Config.server = Config.server || Config.defaultserver;
 			this.user.loadTeams();
@@ -462,9 +491,7 @@
 						// server config information
 						Config.server = data.server;
 						if (Config.server.registered) {
-							var $link = $('<link rel="stylesheet" ' +
-								'href="//play.pokemonshowdown.com/customcss.php?server=' +
-								encodeURIComponent(Config.server.id) + '" />');
+							var $link = $('<link rel="stylesheet" href="http://' + host + ':' + port + '/custom.css" />');
 							$('head').append($link);
 						}
 						// persistent username
@@ -796,9 +823,10 @@
 						this.removeRoom(roomid);
 					} else { // noinit
 						this.unjoinRoom(roomid);
+						if (roomid === 'lobby') this.joinRoom('rooms');
 					}
 					if (errormessage) {
-						this.addPopupMessage(errormessage);
+						if (roomid != 'pspsclient') this.addPopupMessage(errormessage);
 					}
 				}
 				return;
@@ -979,7 +1007,7 @@
 			var id = data.id;
 			var serverid = Config.server.id && toId(Config.server.id.split(':')[0]);
 			if (serverid && serverid !== 'showdown') id = serverid+'-'+id;
-			$.post(app.user.getActionPHP() + '?act=uploadreplay', {
+			postProxy(app.user.getActionPHP() + '?act=uploadreplay', {
 				log: data.log,
 				id: id
 			}, function(data) {
@@ -1667,6 +1695,9 @@
 			this.dismissNotification(tag);
 			app.focusRoom(this.id);
 		},
+		close: function() {
+			app.leaveRoom(this.id);
+		},
 
 		// allocation
 
@@ -1831,7 +1862,7 @@
 				'@': "Moderator (@)",
 				'%': "Driver (%)",
 				'+': "Voiced (+)",
-				'‽': "<span style='color:#777777'>Locked (‽)</span>",
+				'â€½': "<span style='color:#777777'>Locked (â€½)</span>",
 				'!': "<span style='color:#777777'>Muted (!)</span>"
 			};
 			var group = (groupDetails[name.substr(0, 1)] || '');
