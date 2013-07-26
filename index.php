@@ -56,7 +56,7 @@
 		</script>
 		<![endif]-->
 		<div id="header" class="header">
-			<img class="logo" src="http://play.pokemonshowdown.com/pokemonshowdownbeta.png" alt="Pok&eacute;mon Showdown! (beta)" /><div class="maintabbarbottom"></div>
+			<img class="logo" src="/fx/amethyst.png" alt="Pokemon Amethyst" /><div class="maintabbarbottom"></div>
 		</div>
 		<div id="main">
 			<div id="loading-message" class="mainmessage">Initializing... <noscript>FAILED<br /><br />Pok&eacute;mon Showdown requires JavaScript.</noscript></div>
@@ -81,7 +81,7 @@
 			document.getElementById('loading-message').innerHTML = 'If the client is taking a long time to load, try refreshing in a few minutes. If it still doesn\'t work, Pok&eacute;mon Showdown may be down for maintenance. We apologize for the inconvenience.<br /><br />'+document.getElementById('loading-message').innerHTML;
 		</script>
 
-		<script src="http://play.pokemonshowdown.com/js/config.js?f3c5f1ea"></script>
+		<script src="/js/config.js?f3c5f1ea"></script>
 		<script src="/js/battledata.js?9d1bc43c"></script>
 		<script src="./data/pokedex-mini.js"></script>
 		<script src="http://play.pokemonshowdown.com/js/battle.js?a6f6824f"></script>
