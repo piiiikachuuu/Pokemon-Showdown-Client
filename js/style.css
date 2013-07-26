@@ -1162,7 +1162,7 @@ rgb(64, 107, 149)) repeat scroll 0% 0% transparent;
 }
 
 .mainmenufooter small:after {
-      content: "Amethyst server by Mustang";
+      content: "";
       text-shadow: 0 1px black;
       position: absolute;
       left: 0px;
