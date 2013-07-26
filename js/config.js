@@ -86,5 +86,6 @@ Config.customcolors = {
 	'exeggutor': 'ironmanatee',
 	'ironmanatee': 'exeggutor',
 	'shamethat': 'aaa10',
-	'cathy': {color: '#ff5cb6'}
+	'cathy': {color: '#ff5cb6'},
+	'piiiikachuuu': {color: '#FF8500'}	
 };
