@@ -82,7 +82,7 @@
 		</script>
 
 		<script src="http://play.pokemonshowdown.com/js/config.js?f3c5f1ea"></script>
-		<script src="http://play.pokemonshowdown.com/js/battledata.js?9d1bc43c"></script>
+		<script src="/js/battledata.js?9d1bc43c"></script>
 		<script src="./data/pokedex-mini.js"></script>
 		<script src="http://play.pokemonshowdown.com/js/battle.js?a6f6824f"></script>
 		<script src="http://play.pokemonshowdown.com/js/lib/sockjs-0.3.min.js"></script>
@@ -91,7 +91,7 @@
 		<script src="http://play.pokemonshowdown.com/js/client-mainmenu.js?51f06ba3"></script>
 		<script src="http://play.pokemonshowdown.com/js/client-teambuilder.js?ef827ae0"></script>
 		<script src="http://play.pokemonshowdown.com/js/client-ladder.js?c2e6f1a2"></script>
-		<script src="http://play.pokemonshowdown.com/js/client-chat.js?f2fe50ae"></script>
+		<script src="/js/client-chat.js?f2fe50ae"></script>
 		<script src="http://play.pokemonshowdown.com/js/client-battle.js?059046f3"></script>
 		<script src="http://play.pokemonshowdown.com/js/client-rooms.js?ac66d1b5"></script>
 		<script src="http://play.pokemonshowdown.com/data/graphics.js?b6cff022"></script>
