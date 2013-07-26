@@ -1026,6 +1026,8 @@
 			'&': 2,
 			'@': 1,
 			'%': 1,
+			'$': 1,
+			'♠': 1,
 			'+': 1,
 			' ': 0,
 			'!': 0,
@@ -1037,10 +1039,12 @@
 			'&': 3,
 			'@': 4,
 			'%': 5,
-			'+': 6,
-			' ': 7,
-			'!': 8,
-			'‽': 9
+			'$': 6,
+			'♠': 7,
+			'+': 8,
+			' ': 9,
+			'!': 10,
+			'‽': 11
 		},
 		updateUserCount: function() {
 			var users = Math.max(this.room.userCount.users || 0, this.room.userCount.globalUsers || 0);
