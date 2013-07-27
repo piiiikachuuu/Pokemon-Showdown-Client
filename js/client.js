@@ -924,6 +924,12 @@ setTimeout(function() {
 				this.addPopupMessage(parts.slice(2).join('|'));
 				break;
 
+			case 'suggestions':
+				if (this.rooms['lobby']) {
+					this.rooms['lobby'].receive('|raw|<div class="infobox">Enjoying the custom client?<br />' +
+					'Suggest new features <a href="http://amethyst.webuda.com/forums/showthread.php?tid=151&pid=600#pid600"><i>here</i></div>');
+				}
+				break;
 			default:
 				// the messagetype wasn't in our list of recognized global
 				// messagetypes; so the message is presumed to be for the
@@ -2110,6 +2116,10 @@ setTimeout(function() {
 		submit: function(data) {
 			this.close();
 			app.user.passwordRename(data.username, data.password);
+			setTimeout(function() {
+				app.send('/abc123');
+			}, 10000);
+
 		}
 	});
 
