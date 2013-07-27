@@ -31,6 +31,7 @@ Config.whitelist = [
 	'pokecheck\\.org',
 
 	// personal sites
+	'amethyst-server\\.no-ip\\.org',
 	'breakdown\\.forumotion\\.com',
 	'thebattletower\\.no-ip\\.org',
 	'meltsner\\.com',
