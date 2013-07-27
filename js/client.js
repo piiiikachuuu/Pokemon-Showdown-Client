@@ -1862,7 +1862,8 @@ setTimeout(function() {
 				'@': "Moderator (@)",
 				'%': "Driver (%)",
 				'$': "Champion ($)",
-				'♠': "Voiced (+)",
+				'♠': "Voiced (♠)",
+				'+': "Voiced (+)",
 				'â€½': "<span style='color:#777777'>Locked (â€½)</span>",
 				'!': "<span style='color:#777777'>Muted (!)</span>"
 			};
