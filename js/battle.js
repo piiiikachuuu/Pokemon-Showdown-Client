@@ -2388,6 +2388,18 @@ function Battle(frame, logFrame, noPreload) {
 				abilityMessage: "'s Snow Warning whipped up a hailstorm!",
 				upkeepMessage: 'The hail crashes down.',
 				endMessage: 'The hail stopped.'
+			},
+			eclipse: {
+				name: 'Eclipse',
+				startMessage: 'An eclipse began!',
+				abilityMessage: "'s Eternal Night caused an eclipse!",
+				endMessage: 'The eclipse ended.'
+			},
+			clearskies: {
+				name: 'Clear Skies',
+				startMessage: 'The skies cleared!',
+				abilityMessage: "'s Gusting Wind cleared the skies!",
+				endMessage: 'The clear skies ended.'
 			}
 		};
 		if (!weather || weather === 'none') {
