@@ -13887,5 +13887,105 @@ exports.BattleMovedex = {
 		},
 		target: "normal",
 		type: "Water"
+	},
+	"darkritual": {
+		num: 9000,
+		accuracy: true,
+		basePower: 0,
+		category: "Status",
+		desc: "For 5 turns, the weather becomes Eclipse. The power of Dark and Ghost-type attacks is 1.5x during the effect. Fails if the current weather is Eclipse.",
+		shortDesc: "For 5 turns, darkness powers Dark and Ghost moves.",
+		id: "darkritual",
+		isViable: true,
+		name: "Dark Ritual",
+		pp: 5,
+		priority: 0,
+		weather: 'eclipse',
+		secondary: false,
+		target: "all",
+		type: "Dark"
+	},
+	"breakingwind": {
+		num: 9001,
+		accuracy: true,
+		basePower: 0,
+		category: "Status",
+		desc: "For 5 turns, the weather becomes Clear Skies. The power of Fying-type attacks is 1.5x during the effect. Fails if the current weather is Clear Skies.",
+		shortDesc: "For 5 turns, heavy rain powers Water moves.",
+		id: "breakingwind",
+		isViable: true,
+		name: "Breaking Wind",
+		pp: 5,
+		priority: 0,
+		weather: 'clearskies',
+		secondary: false,
+		target: "all",
+		type: "Flying"
+	},
+	"amethystshard": {
+		num: 9002,
+		accuracy: 95,
+		basePower: 80,
+		category: "Physical",
+		desc: "Deals damage, and has a 20% chance to freeze the opponent.",
+		shortDesc: "Deals damage with a chance to freeze.",
+		id: "amethystshard",
+		isViable: true,
+		name: "Amethyst Shard",
+		pp: 10,
+		priority: 0,
+		secondary: {
+			chance: 20,
+			status: 'frz'
+		},
+		target: "normal",
+		type: "Ice"
+	},
+	"amethystgodmove": {
+		num: 9003,
+		accuracy: 100,
+		basePower: 200,
+		category: "Special",
+		desc: "Deals massive damage and lowers all of the foe's stats by 1. The user must recharge if the attack is successful.",
+		shortDesc: "Deals massive damage. User must recharge.",
+		id: "amethystgodmove",
+		isViable: true,
+		name: "Amethyst God Move",
+		pp: 5,
+		priority: 0,
+		self: {
+			volatileStatus: 'mustrecharge'
+		},
+		secondary: {
+			chance: 100,
+			boosts: {
+				atk: -1,
+				def: -1,
+				spa: -1,
+				spd: -1,
+				spe: -1
+			}
+		},
+		target: "normal",
+		type: "Psychic"
+	},
+	"voltbolt": {
+		num: 9004,
+		accuracy: 100,
+		basePower: 40,
+		category: "Physical",
+		desc: "This attack usually goes first. Has a 10% chance of paralyzing the opponent.",
+		shortDesc: "Usually goes first.",
+		id: "voltbolt",
+		isViable: true,
+		name: "Volt Bolt",
+		pp: 10,
+		priority: 1,
+		secondary: {
+			chance: 10,
+			status: 'par'
+		},
+		target: "normal",
+		type: "Electric"
 	}
 };
