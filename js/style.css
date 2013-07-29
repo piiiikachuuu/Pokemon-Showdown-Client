@@ -48,8 +48,8 @@ solid;
     background: none repeat scroll 0% 0% rgb(83, 205, 229);
 }
 .mainmenuwrapper {
-  background: url(http://i.imgur.com/djC9Qpq.png)  no-repeat;
-  background-size: 100% 100%;
+  background: url(http://i.imgur.com/djC9Qpq.png)  no-repeat #161616;
+  background-size: 100% 96%;
   }
 
 a{
@@ -1125,8 +1125,8 @@ black;
     color: rgb(113, 27, 121);
     font-size: 11pt;
     font-family: Verdana,Helvetica,Arial,sans-serif;
-    background: url("http://i.imgur.com/djC9Qpq.png") no-repeat;
-	background-size: 100% 100%;
+    background: url("http://i.imgur.com/djC9Qpq.png") no-repeat #161616;
+	background-size: 100% 96%;
 }
 .chat-log {
     font-size: 10pt;
