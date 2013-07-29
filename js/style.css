@@ -9,7 +9,7 @@ position: relative;
 top: -12px;
 
 background: 
-url(http://i1073.photobucket.com/albums/w394/HeechulBread/Pikachu_sprite_by_Momogirl_zpsf31aafb5.gif)no-repeat;
+/*url(http://i1073.photobucket.com/albums/w394/HeechulBread/Pikachu_sprite_by_Momogirl_zpsf31aafb5.gif)no-repeat;*/
  }
 
 .chat-log {
@@ -48,9 +48,8 @@ solid;
     background: none repeat scroll 0% 0% rgb(83, 205, 229);
 }
 .mainmenuwrapper {
-  background: url(http://i.imgur.com/hT1nL5V.png)  no-repeat scroll 
-right top;
-
+  background: url(http://i.imgur.com/djC9Qpq.png)  no-repeat;
+  background-size: 100% 100%;
   }
 
 a{
@@ -59,7 +58,7 @@ a{
 
 body{
 	background: 
-url(http://fc07.deviantart.net/fs70/f/2012/313/9/a/mewtwo_wallpaper_by_porkymeansbusiness-d5khqcg.png);
+url(http://static.tumblr.com/y72tujx/GZ1lzosgt/j.png);
   	background-size: cover;
 }
 
@@ -79,16 +78,16 @@ color: #000000;
 .ladder strong, .ladder em{
   color: #131313 !important;
 }
-
+/*
 .mainmenufooter small:after {
 	  content: "Pokemon B2W2 Skin by +MightyMewtwo [L.Moraes]";
       text-shadow: 0 1px black;
       position: absolute;
       left: 0px;
-      top: -40px;
+      top: 40px;
       width: 200px;
 }
-
+*/
 
 
 .tabbar{
@@ -1126,8 +1125,8 @@ black;
     color: rgb(113, 27, 121);
     font-size: 11pt;
     font-family: Verdana,Helvetica,Arial,sans-serif;
-    background: url("http://i.imgur.com/hT1nL5V.png") no-repeat scroll 
-right top rgb(63, 38, 70);
+    background: url("http://i.imgur.com/djC9Qpq.png") no-repeat;
+	background-size: 100% 100%;
 }
 .chat-log {
     font-size: 10pt;
@@ -1160,17 +1159,17 @@ rgb(64, 107, 149)) repeat scroll 0% 0% transparent;
     padding: 3px 4px 0px;
     border-top: 1px solid rgb(72, 61, 139);
 }
-
+/*
 .mainmenufooter small:after {
       content: "";
       text-shadow: 0 1px black;
       position: absolute;
       left: 0px;
-      top: -40px;
+      top: 40px;
       width: 200px;
 
 }
-
+*/
 .battle-log {
 position: absolute;
 text-align: left;

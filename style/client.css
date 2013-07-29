@@ -560,7 +560,7 @@ p.or:after {
 }
 .mainmenufooter {
 	position: absolute;
-	bottom: 15px;
+	top: 35px;
 	left: 20px;
 	color: #BBBBBB;
 }
