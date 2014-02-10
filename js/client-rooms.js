@@ -39,17 +39,21 @@
 			} else {
 				rooms = app.roomsData;
 			}
-			if (!app.user.get('named')) {
-				var buf = '<div class="pad"><p>You must be logged in to join rooms.</p></div>';
-				this.$el.html(buf);
-				return;
-			}
+			var buf = '<div class="pad"><button style="float:right" name="close">Close</button>';
 			if (!rooms) {
-				var buf = '<div class="pad"><p>Loading...</p></div>';
+				buf += '<p>Loading...</p></div>';
 				this.$el.html(buf);
 				return;
 			}
-			var buf = '<div class="pad"><div class="roomlist" style="max-width:480px">';
+			buf += '<div class="roomlist" style="max-width:480px">';
+
+			if (rooms.userCount) {
+				var userCount = Number(rooms.userCount);
+				var battleCount = Number(rooms.battleCount);
+				buf += '<p>'+userCount+' '+(userCount==1?'user':'users')+' online';
+				buf += ', '+battleCount+' active '+(battleCount==1?'battle':'battles');
+				buf += '</p>';
+			}
 
 			buf += '<h2>Official chat rooms</h2>';
 			for (var i=0; i<rooms.official.length; i++) {

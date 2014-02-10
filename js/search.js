@@ -31,7 +31,8 @@
 		move: 2,
 		item: 3,
 		ability: 4,
-		category: 5
+		egggroup: 5,
+		category: 6
 	};
 	var typeName = {
 		pokemon: 'Pokemon',
@@ -39,6 +40,7 @@
 		move: 'Moves',
 		item: 'Items',
 		ability: 'Abilities',
+		egggroup: 'Egg group',
 		category: 'Category'
 	};
 	Search.prototype.find = function(query) {
@@ -55,12 +57,15 @@
 		}
 
 		var i = Search.getClosest(query);
-		if (!BattleSearchIndex[i] || query === 'metronome' || query === 'psychic') i--;
+		if (!BattleSearchIndex[i]) i--;
+		if (BattleSearchIndex[i-1] && BattleSearchIndex[i-1] === query) i--;
 		this.exactMatch = (query === BattleSearchIndex[i]);
 
 		var bufs = ['','','',''];
 		var topbufIndex = -1;
 
+		var nearMatch = (BattleSearchIndex[i].substr(0,query.length) !== query);
+		if (nearMatch && i) i--;
 		for (var j=0; j<15; j++) {
 			var id = BattleSearchIndex[i+j];
 			var type = BattleSearchIndexType[i+j];
@@ -68,7 +73,7 @@
 
 			if (!id) break;
 			if (id.substr(0,query.length) !== query) {
-				if (j) break;
+				if (!(nearMatch && j<=1)) break;
 				matchLength = 0;
 			}
 			if (j === 0 && this.exactMatch) {
@@ -76,7 +81,6 @@
 			}
 
 			if (!bufs[typeTable[type]]) bufs[typeTable[type]] = '<li><h3>'+typeName[type]+'</h3></li>';
-			if (!matchLength) bufs[typeTable[type]] = '<li class="notfound"><em>No exact match found. The next match alphabetically is:</em></li>'+bufs[typeTable[type]];
 			bufs[typeTable[type]] += Search.renderRow(id, type, 0, matchLength + (BattleSearchIndexOffset[i+j][matchLength-1]||'0').charCodeAt(0)-48);
 		}
 
@@ -85,6 +89,8 @@
 			topbuf = bufs[topbufIndex];
 			bufs[topbufIndex] = '';
 		}
+
+		if (nearMatch) topbuf = '<li class="notfound"><em>No exact match found. The closest matches alphabetically are:</em></li>'+topbuf;
 
 		this.el.innerHTML = '<ul class="utilichart">'+topbuf+bufs.join('')+'</ul>';
 		return true;
@@ -110,7 +116,7 @@
 
 	//
 	// Rendering functions
-	// 
+	//
 	// These are all static!
 	//
 
@@ -133,6 +139,9 @@
 		case 'type':
 			var type = {name: id[0].toUpperCase()+id.substr(1)};
 			return Search.renderTypeRow(type, matchStart, matchLength, errorMessage);
+		case 'egggroup':
+			var egggroup = {name: id[0].toUpperCase()+id.substr(1)};
+			return Search.renderEggGroupRow(egggroup, matchStart, matchLength, errorMessage);
 		case 'category':
 			var category = {name: id[0].toUpperCase()+id.substr(1)};
 			return Search.renderCategoryRow(category, matchStart, matchLength, errorMessage);
@@ -198,10 +207,10 @@
 			if (!ability) continue;
 
 			if (i === '1') buf += '<br />';
-			if (i === 'DW') ability = '</span><span class="col abilitycol"><em>'+pokemon.abilities[i]+'</em>';
+			if (i === 'H') ability = '</span><span class="col abilitycol"><em>'+pokemon.abilities[i]+'</em>';
 			buf += ability;
 		}
-		if (!pokemon.abilities['DW']) buf += '</span><span class="col abilitycol">';
+		if (!pokemon.abilities['H']) buf += '</span><span class="col abilitycol">';
 		buf += '</span>';
 		buf += '</span>';
 
@@ -267,10 +276,10 @@
 			if (!ability) continue;
 
 			if (i === '1') buf += '<br />';
-			if (i === 'DW') ability = '</span><span class="col abilitycol"><em>'+pokemon.abilities[i]+'</em>';
+			if (i === 'H') ability = '</span><span class="col abilitycol"><em>'+pokemon.abilities[i]+'</em>';
 			buf += ability;
 		}
-		if (!pokemon.abilities['DW']) buf += '</span><span class="col abilitycol">';
+		if (!pokemon.abilities['H']) buf += '</span><span class="col abilitycol">';
 		buf += '</span>';
 		buf += '</span>';
 
@@ -398,6 +407,42 @@
 
 		return buf;
 	};
+	Search.renderMoveRowInner = function(move, errorMessage) {
+		var attrs = '';
+		if (Search.urlRoot) attrs = ' href="'+Search.urlRoot+'moves/'+toId(move.name)+'" data-target="push"';
+		var buf = '<a'+attrs+' data-name="'+Tools.escapeHTML(move.name)+'">';
+
+		// name
+		var name = move.name;
+		var tagStart = (name.substr(0, 12) === 'Hidden Power' ? 12 : 0);
+		if (tagStart) name = name.substr(0, tagStart) + '<small>'+move.name.substr(tagStart)+'</small>';
+		buf += '<span class="col movenamecol">'+name+'</span> ';
+
+		// error
+		if (errorMessage) {
+			buf += '<span class="col illegalcol"><em>'+errorMessage+'</em></span> ';
+			buf += '</a></li>';
+			return buf;
+		}
+
+		// type
+		buf += '<span class="col typecol">';
+		buf += Tools.getTypeIcon(move.type);
+		buf += '<img src="' + Tools.resourcePrefix + 'sprites/categories/'+move.category+'.png" alt="'+move.category+'" height="14" width="32" />';
+		buf += '</span> ';
+
+		// power, accuracy, pp
+		buf += '<span class="col labelcol">'+(move.category!=='Status'?('<em>Power</em><br />'+(move.basePower||'&mdash;')):'')+'</span> ';
+		buf += '<span class="col widelabelcol"><em>Accuracy</em><br />'+(move.accuracy && move.accuracy!==true?move.accuracy+'%':'&mdash;')+'</span> ';
+		buf += '<span class="col pplabelcol"><em>PP</em><br />'+(move.pp!==1?move.pp*8/5:move.pp)+'</span> ';
+
+		// desc
+		buf += '<span class="col movedesccol">'+Tools.escapeHTML(move.shortDesc || move.desc)+'</span> ';
+
+		buf += '</a>';
+
+		return buf;
+	};
 	Search.renderTaggedMoveRow = function(move, tag, errorMessage) {
 		var attrs = '';
 		if (Search.urlRoot) attrs = ' href="'+Search.urlRoot+'moves/'+toId(move.name)+'" data-target="push"';
@@ -488,6 +533,29 @@
 		buf += '<span class="col typecol">';
 		buf += '<img src="' + Tools.resourcePrefix + 'sprites/categories/'+category.name+'.png" alt="'+category.name+'" height="14" width="32" />';
 		buf += '</span> ';
+
+		buf += '</a></li>';
+
+		return buf;
+	};
+	Search.renderEggGroupRow = function(egggroup, matchStart, matchLength, errorMessage) {
+		var attrs = '';
+		if (Search.urlRoot) attrs = ' href="'+Search.urlRoot+'egggroups/'+toId(egggroup.name)+'" data-target="push"';
+		var buf = '<li class="result"><a'+attrs+' data-name="'+Tools.escapeHTML(egggroup.name)+'">';
+
+		// name
+		var name = egggroup.name;
+		if (matchLength) {
+			name = name.substr(0, matchStart)+'<b>'+name.substr(matchStart, matchLength)+'</b>'+name.substr(matchStart+matchLength);
+		}
+		buf += '<span class="col namecol">'+name+'</span> ';
+
+		// error
+		if (errorMessage) {
+			buf += '<span class="col illegalcol"><em>'+errorMessage+'</em></span> ';
+			buf += '</a></li>';
+			return buf;
+		}
 
 		buf += '</a></li>';
 

@@ -7,12 +7,15 @@ License: MIT License
 
 if (!window.exports) window.exports = window;
 
+window.nodewebkit = false;
+if (typeof process !== 'undefined' && process.versions && process.versions['node-webkit']) window.nodewebkit = true;
+
 // todo: http://www.youtube.com/watch?v=eEwAPnIev38
 // 32.930 - 1:13.032
 // 32930 to 73032
 // subway
 // 1:33.120 - 3:08.614
-/* 
+/*
 
 // PO importer
 
@@ -262,7 +265,14 @@ var baseSpeciesChart = {
 	'thundurus': 1,
 	'landorus': 1,
 	'kyurem': 1,
-	'keldeo': 1
+	'keldeo': 1,
+	'aegislash': 1,
+	'gourgeist': 1,
+
+	// mega evolutions
+	'charizard': 1,
+	'mewtwo': 1
+	// others are hardcoded by ending with 'mega'
 };
 
 var Tools = {
@@ -278,6 +288,9 @@ var Tools = {
 		if (!isNaN(avatarnum)) {
 			// default avatars
 			return Tools.resourcePrefix + 'sprites/trainers/' + avatarnum + '.png';
+		}
+		if (avatar.charAt(0) === '#') {
+			return Tools.resourcePrefix + 'sprites/trainers/' + toId(avatar.substr(1)) + '.png';
 		}
 		if (window.Config && Config.server && Config.server.registered) {
 			// custom avatar served by the server
@@ -314,7 +327,11 @@ var Tools = {
 				options.hidestrikethrough ? '$1' : '<s>$1</s>');
 		// linking of URIs
 		if (!options.hidelinks) {
-			str = str.replace(/(https?\:\/\/[a-z0-9-.]+(\/([^\s]*[^\s?.,])?)?|[a-z0-9]([a-z0-9-\.]*[a-z0-9])?\.(com|org|net|edu|us)((\/([^\s]*[^\s?.,])?)?|\b))/ig, function(uri) {
+			var classbit = '';
+			if (linkclass) {
+				classbit = ' class="message-link-' + toId(linkclass) + '"';
+			}
+			str = str.replace(/(https?\:\/\/[a-z0-9-.]+(\:[0-9]+)?(\/([^\s]*[^\s?.,])?)?|[a-z0-9]([a-z0-9-\.]*[a-z0-9])?\.(com|org|net|edu|us)(\:[0-9]+)?((\/([^\s]*[^\s?.,])?)?|\b))/ig, function(uri) {
 				// Insert http:// before URIs without a URI scheme specified.
 				var fulluri = uri.replace(/^([a-z]*[^a-z:])/g, 'http://$1');
 				var onclick;
@@ -337,10 +354,6 @@ var Tools = {
 					onclick = 'if (window._gaq) _gaq.push([\'_trackEvent\', \'' +
 							event + '\', \'' + Tools.escapeQuotes(fulluri) + '\']);';
 				}
-				var classbit = '';
-				if (linkclass) {
-					classbit = ' class="message-link-' + toId(linkclass) + '"';
-				}
 				return '<a href="' + fulluri +
 					'" target="_blank" onclick="' + onclick + '"' + classbit +
 						'>' + uri + '</a>';
@@ -351,7 +364,7 @@ var Tools = {
 			str = str.replace(/(\bgoogle ?\[([^\]<]+)\])/ig, function(p0, p1, p2) {
 				p2 = Tools.escapeHTML(encodeURIComponent(Tools.unescapeHTML(p2)));
 				return '<a href="http://www.google.com/search?ie=UTF-8&q=' + p2 +
-					'" target="_blank">' + p1 + '</a>';
+					'" target="_blank"' + classbit + '>' + p1 + '</a>';
 			});
 			// gl [blah]
 			// gl[blah]
@@ -359,21 +372,21 @@ var Tools = {
 			str = str.replace(/(\bgl ?\[([^\]<]+)\])/ig, function(p0, p1, p2) {
 				p2 = Tools.escapeHTML(encodeURIComponent(Tools.unescapeHTML(p2)));
 				return '<a href="http://www.google.com/search?ie=UTF-8&btnI&q=' + p2 +
-					'" target="_blank">' + p1 + '</a>';
+					'" target="_blank"' + classbit + '>' + p1 + '</a>';
 			});
 			// wiki [blah]
 			//   Search Wikipedia for 'blah' (and visit the article for 'blah' if it exists)
 			str = str.replace(/(\bwiki ?\[([^\]<]+)\])/ig, function(p0, p1, p2) {
 				p2 = Tools.escapeHTML(encodeURIComponent(Tools.unescapeHTML(p2)));
 				return '<a href="http://en.wikipedia.org/w/index.php?title=Special:Search&search=' +
-					p2 + '" target="_blank">' + p1 + '</a>';
+					p2 + '" target="_blank"' + classbit + '>' + p1 + '</a>';
 			});
 			// [[blah]]
 			//   Short form of gl[blah]
 			str = str.replace(/\[\[([^< ]([^<`]*?[^< ])?)\]\]/ig, function(p0, p1) {
 				var q = Tools.escapeHTML(encodeURIComponent(Tools.unescapeHTML(p1)));
 				return '<a href="http://www.google.com/search?ie=UTF-8&btnI&q=' + q +
-					'" target="_blank">' + p1 +'</a>';
+					'" target="_blank"' + classbit + '>' + p1 +'</a>';
 			});
 		}
 		// __italics__
@@ -382,6 +395,18 @@ var Tools = {
 		// **bold**
 		str = str.replace(/\*\*([^< ]([^<]*?[^< ])?)\*\*/g,
 			options.hidebold ? '$1' : '<b>$1</b>');
+
+		if (!options.hidespoiler) {
+			var spoilerIndex = str.toLowerCase().indexOf('spoiler:');
+			if (spoilerIndex < 0) spoilerIndex = str.toLowerCase().indexOf('spoilers:');
+			if (spoilerIndex >= 0) {
+				var offset = spoilerIndex+8;
+				if (str.charAt(offset) === ':') offset++;
+				if (str.charAt(offset) === ' ') offset++;
+				str = str.substr(0, offset)+'<span class="spoiler">'+str.substr(offset)+'</span>';
+			}
+		}
+
 		return str;
 	},
 
@@ -532,8 +557,11 @@ var Tools = {
 			prefs.data[prop] = value;
 			if (save !== false) prefs.save();
 		};
-		prefs.data = (window.localStorage &&
-			$.parseJSON(localStorage.getItem(localStorageEntry))) || {};
+		prefs.data = {};
+		try {
+			prefs.data = (window.localStorage &&
+				$.parseJSON(localStorage.getItem(localStorageEntry))) || {};
+		} catch (e) {}
 		prefs.save = function() {
 			if (!window.localStorage) return;
 			localStorage.setItem(localStorageEntry, $.toJSON(this.data));
@@ -663,6 +691,10 @@ var Tools = {
 						template.forme = id.substr(k.length);
 					}
 				}
+				if (id !== 'yanmega' && id.substr(id.length-4) === 'mega') {
+					template.baseSpecies = id.substr(0, id.length-4);
+					template.forme = id.substr(id.length-4);
+				}
 				template.exists = false;
 			}
 			template = window.BattlePokedex[id];
@@ -682,7 +714,15 @@ var Tools = {
 			if (!template.baseSpecies) template.baseSpecies = name;
 			if (!template.forme) template.forme = '';
 			if (!template.formeLetter) template.formeLetter = '';
-			if (!template.spriteid) template.spriteid = toId(template.baseSpecies)+(template.baseSpecies!==name?'-'+toId(template.forme):'');
+			if (!template.spriteid) {
+				var formeid = '';
+				if (template.baseSpecies !== name) {
+					formeid = '-'+toId(template.forme);
+					if (formeid === '-megax') formeid = '-mega-x';
+					if (formeid === '-megay') formeid = '-mega-y';
+				}
+				template.spriteid = toId(template.baseSpecies)+formeid;
+			}
 			if (!template.effectType) template.effectType = 'Template';
 		}
 		return template;
@@ -709,7 +749,7 @@ var Tools = {
 		} while (template && template.species && !alreadyChecked[template.speciesid]);
 		return learnset;
 	},
-	
+
 	getType: function(type) {
 		if (!type || typeof type === 'string') {
 			var id = toId(type);
@@ -794,63 +834,67 @@ var Tools = {
 		else if (window.BattlePokemonSprites && BattlePokemonSprites[id] && BattlePokemonSprites[id].num) num = BattlePokemonSprites[id].num;
 		else if (window.BattlePokedex && window.BattlePokedex[id] && BattlePokedex[id].num) num = BattlePokedex[id].num;
 		if (num < 0) num = 0;
+		if (num > 718) num = 0;
 		var altNums = {
-			"egg": 651,
-			"rotomfan": 699,
-			"rotomfrost": 700,
-			"rotomheat": 701,
-			"rotommow": 702,
-			"rotomwash": 703,
-			"giratinaorigin": 705,
-			"shayminsky": 707,
-			"basculinbluestriped": 709,
-			"darmanitanzen": 712,
-			"deoxysattack": 683,
-			"deoxysdefense": 684,
-			"deoxysspeed": 686,
-			"wormadamsandy": 691,
-			"wormadamtrash": 692,
-			"cherrimsunshine": 694,
-			"castformrainy": 680,
-			"castformsnowy": 681,
-			"castformsunny": 682,
-			"meloettapirouette": 724,
-			"tornadustherian": 736,
-			"thundurustherian": 737,
-			"landorustherian": 738,
-			"kyuremblack": 739,
-			"kyuremwhite": 740,
-			"keldeoresolute": 741,
-			"syclant": 752+0,
-			"revenankh": 752+1,
-			"pyroak": 752+2,
-			"fidgit": 752+3,
-			"stratagem": 752+4,
-			"arghonaut": 752+5,
-			"kitsunoh": 752+6,
-			"cyclohm": 752+7,
-			"colossoil": 752+8,
-			"krilowatt": 752+9,
-			"voodoom": 752+10,
-			"tomohawk": 752+11,
-			"necturna": 752+12,
-			"mollux": 752+13,
-			"aurumoth": 752+14,
-			"malaconda": 752+15,
+			"egg": 731,
+			"rotomfan": 779,
+			"rotomfrost": 780,
+			"rotomheat": 781,
+			"rotommow": 782,
+			"rotomwash": 783,
+			"giratinaorigin": 785,
+			"shayminsky": 787,
+			"basculinbluestriped": 789,
+			"darmanitanzen": 792,
+			"deoxysattack": 763,
+			"deoxysdefense": 764,
+			"deoxysspeed": 766,
+			"wormadamsandy": 771,
+			"wormadamtrash": 772,
+			"cherrimsunshine": 774,
+			"castformrainy": 760,
+			"castformsnowy": 761,
+			"castformsunny": 762,
+			"meloettapirouette": 804,
+			"meowsticf": 809,
+			"tornadustherian": 816,
+			"thundurustherian": 817,
+			"landorustherian": 818,
+			"kyuremblack": 819,
+			"kyuremwhite": 820,
+			"keldeoresolute": 821,
+			"syclant": 832+0,
+			"revenankh": 832+1,
+			"pyroak": 832+2,
+			"fidgit": 832+3,
+			"stratagem": 832+4,
+			"arghonaut": 832+5,
+			"kitsunoh": 832+6,
+			"cyclohm": 832+7,
+			"colossoil": 832+8,
+			"krilowatt": 832+9,
+			"voodoom": 832+10,
+			"tomohawk": 832+11,
+			"necturna": 832+12,
+			"mollux": 832+13,
+			"aurumoth": 832+14,
+			"malaconda": 832+15,
+			"cawmodore": 832+16,
 		};
 		if (altNums[id]) {
 			num = altNums[id];
 		}
 		if (pokemon && pokemon.gender === 'F') {
-			if (id === 'unfezant') num = 708;
-			else if (id === 'frillish') num = 721;
-			else if (id === 'jellicent') num = 722;
+			if (id === 'unfezant') num = 788;
+			else if (id === 'frillish') num = 801;
+			else if (id === 'jellicent') num = 802;
+			else if (id === 'meowstic') num = 809;
 		}
 
 		var top = 8 + Math.floor(num / 16) * 32;
 		var left = (num % 16) * 32;
 		var fainted = (pokemon && pokemon.fainted?';opacity:.4':'');
-		return 'background:transparent url(' + Tools.resourcePrefix + 'sprites/bwicons-sheet.png?v0.8.5) no-repeat scroll -' + left + 'px -' + top + 'px' + fainted;
+		return 'background:transparent url(' + Tools.resourcePrefix + 'sprites/bwicons-sheet-g6.png?v0.9xyb1) no-repeat scroll -' + left + 'px -' + top + 'px' + fainted;
 	},
 
 	getTeambuilderSprite: function(pokemon) {
@@ -888,4 +932,3 @@ var Tools = {
 		return '<img src="' + Tools.resourcePrefix + 'sprites/types/'+sanitizedType+'.png" alt="'+type+'" height="14" width="32"'+(b?' class="b"':'')+' />';
 	}
 };
-

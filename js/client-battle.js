@@ -379,6 +379,9 @@
 					} else {
 						controls += movebuttons;
 					}
+					if (switchables[pos].canMegaEvo) {
+						controls += '<br /><label><input type="checkbox" name="megaevo" /> Mega evolution</label>'
+					}
 					controls += '<div style="clear:left"></div>';
 					controls += '</div></div><div class="switchcontrols"><div class="switchselect"><button name="selectSwitch">Switch</button></div><div class="switchmenu">';
 					if (trapped) {
@@ -445,6 +448,9 @@
 					}
 					if (this.battle.gameType === 'doubles') {
 						this.choice.count = 2;
+					}
+					if (this.battle.gameType === 'triples' || this.battle.gameType === 'rotation') {
+						this.choice.count = 3;
 					}
 					controls += 'How will you start the battle?</div>';
 					controls += '<div class="switchcontrols"><div class="switchselect"><button name="selectSwitch">Choose Lead</button></div><div class="switchmenu">';
@@ -570,9 +576,9 @@
 					pokemon.slot = i;
 					// if (pokemon.side.active[i] && pokemon.side.active[i].ident == pokemon.ident) pokemon.side.active[i] = pokemon;
 					if (pokemon.side.active[i] && pokemon.side.active[i].ident == pokemon.ident) {
-						pokemon.side.active[i].item = pokemon.item;
-						pokemon.side.active[i].ability = pokemon.ability;
-						pokemon.side.active[i].baseAbility = pokemon.baseAbility;
+						pokemon.side.active[i].item = pokemon.item || pokemonData.item;
+						pokemon.side.active[i].ability = pokemon.ability || pokemonData.ability;
+						pokemon.side.active[i].baseAbility = pokemon.baseAbility || pokemonData.baseAbility;
 					}
 				} else {
 					pokemon = this.battle.getPokemon('new: '+pokemonData.ident, pokemonData.details);
@@ -584,6 +590,7 @@
 				}
 				pokemon.item = pokemonData.item;
 				pokemon.moves = pokemonData.moves;
+				pokemon.canMegaEvo = pokemonData.canMegaEvo;
 			}
 			this.battle.mySide.updateSidebar();
 		},
@@ -623,9 +630,10 @@
 			var myActive = this.battle.mySide.active;
 			var target = Tools.getMove(move).target;
 			this.hideTooltip();
+			var isMega = !!(this.$('input[name=megaevo]')[0]||'').checked;
 			if (move !== undefined) {
 				var choosableTargets = {normal:1, any:1, adjacentAlly:1, adjacentAllyOrSelf:1, adjacentFoe:1};
-				this.choice.choices.push('move '+move);
+				this.choice.choices.push('move '+move+(isMega?' mega':''));
 				if (myActive.length > 1 && target in choosableTargets) {
 					this.choice.type = 'movetarget';
 					this.choice.moveTarget = target;
@@ -797,13 +805,10 @@
 				}
 				if (pokemon.volatiles.typechange) {
 					text += '<small>(Type changed)</small><br />';
-					types = [pokemon.volatiles.typechange[2]];
+					types = pokemon.volatiles.typechange[2].split('/');
 				}
 				if (types) {
-					text += Tools.getTypeIcon(types[0]);
-					if (types[1]) {
-						text += ' '+Tools.getTypeIcon(types[1]);
-					}
+					text += types.map(Tools.getTypeIcon).join(' ');
 				} else {
 					text += 'Types unknown';
 				}
@@ -815,7 +820,7 @@
 				if (!pokemon.baseAbility && !pokemon.ability) {
 					text += '<p>Possible abilities: ' + Tools.getAbility(template.abilities['0']).name;
 					if (template.abilities['1']) text += ', ' + Tools.getAbility(template.abilities['1']).name;
-					if (template.abilities['DW']) text += ', ' + Tools.getAbility(template.abilities['DW']).name;
+					if (template.abilities['H']) text += ', ' + Tools.getAbility(template.abilities['H']).name;
 					text += '</p>';
 				} else if (pokemon.ability) {
 					text += '<p>Ability: ' + Tools.getAbility(pokemon.ability).name + '</p>';

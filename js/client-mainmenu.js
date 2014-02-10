@@ -8,6 +8,7 @@
 			'keydown textarea': 'keyPress',
 			'click .username': 'clickUsername',
 			'click .closebutton': 'closePM',
+			'click .minimizebutton': 'minimizePM',
 			'click .pm-window': 'clickPMBackground',
 			'focus textarea': 'onFocusPM',
 			'blur textarea': 'onBlurPM',
@@ -17,16 +18,18 @@
 		initialize: function() {
 			this.$el.addClass('scrollable');
 
-			var buf = '<div class="mainmenuwrapper">';
-
 			// left menu 2 (high-res: right, low-res: top)
-			buf += '<div class="leftmenu"><div class="activitymenu"><div class="pmbox"></div></div>';
+			// (created during page load)
 
 			// left menu 1 (high-res: left, low-res: bottom)
-			buf += '<div class="mainmenu">';
+			var buf = '';
 			if (app.down) {
 				buf += '<div class="menugroup">';
-				buf += '<p class="error"><strong>Pok&eacute;mon Showdown is offline due to technical difficulties!</strong></p>';
+				if (app.down === 'ddos') {
+					buf += '<p class="error"><strong>Pok&eacute;mon Showdown is offline due to a DDoS attack!</strong></p>';
+				} else {
+					buf += '<p class="error"><strong>Pok&eacute;mon Showdown is offline due to technical difficulties!</strong></p>';
+				}
 				buf += '<p><span class="pokemonicon" style="margin:0 auto;background:transparent url(//play.pokemonshowdown.com/sprites/bwicons-sheet.png?v0.8.5) no-repeat scroll -288px -424px"></span> Bear with us as we freak out.</p>';
 				buf += '<p>(We\'ll be back up in a few hours.)</p>';
 				buf += '</div>';
@@ -45,18 +48,16 @@
 			} else {
 				buf += '<p><button class="button" name="joinRoom" value="ladder">Ladder</button></p>';
 			}
-			buf += '<p><button class="button" name="credits">Credits</button></p></div></div></div>';
+			buf += '<p><button class="button" name="credits">Credits</button></p></div></div>';
+			this.$('.mainmenu').html(buf);
 
 			// right menu
 			if (!app.down) {
-				buf += '<div class="rightmenu"><div class="menugroup"><p><button class="button" name="joinRoom" value="lobby">Join lobby chat</button></p></div></div>';
+				this.$('.rightmenu').html('<div class="menugroup"><p><button class="button" name="joinRoom" value="lobby">Join lobby chat</button></p></div>');
 			}
 
 			// footer
-			buf += '<div class="mainmenufooter"><small><a href="//pokemonshowdown.com/" target="_blank">Website</a> | <small><a href="//pokemonshowdown.com/dex/" target="_blank">Pok&eacute;dex</a> | <a href="//pokemonshowdown.com/replay/" target="_blank">Replays</a> | <a href="//pokemonshowdown.com/rules" target="_blank">Rules</a></small> | <small><a href="//pokemonshowdown.com/forums/" target="_blank">Forum</a></div>';
-
-			buf += '</div>';
-			this.$el.html(buf);
+			// (created during page load)
 
 			this.$activityMenu = this.$('.activitymenu');
 			this.$pmBox = this.$activityMenu.find('.pmbox');
@@ -65,6 +66,36 @@
 			this.updateFormats();
 
 			app.user.on('saveteams', this.updateTeams, this);
+		},
+
+		addPseudoPM: function(options) {
+			if (!options) return;
+			options.title = options.title || '';
+			options.html = options.html || '';
+			options.cssClass = options.cssClass || '';
+			options.height = options.height || 'auto';
+			options.attributes = options.attributes || '';
+			options.append = options.append || false;
+			options.noMinimize = options.noMinimize || false;
+
+			this.$pmBox[options.append ? 'append' : 'prepend']('<div class="pm-window ' + options.cssClass + '" ' + options.attributes + '><h3><button class="closebutton" tabindex="-1"><i class="icon-remove-sign"></i></button>' + (!options.noMinimize ? '<button class="minimizebutton" tabindex="-1"><i class="icon-minus-sign"></i></button>' : '') + options.title + '</h3><div class="pm-log" style="overflow:visible;height:' + (typeof options.height === 'number' ? options.height + 'px' : options.height) + ';' + (parseInt(options.height) ? 'max-height:none' : '') + '">' +
+				options.html +
+				'</div></div>');
+		},
+
+		// news
+
+		addNews: function() {
+			var newsId = '1990';
+			if (newsId === ''+Tools.prefs('readnews')) return;
+			this.addPseudoPM({
+				title: 'Latest News',
+				html: '<iframe src="/news-embed.php?news'+(window.nodewebkit || document.location.protocol === 'https:'?'&amp;https':'')+'" width="270" height="400" border="0" style="border:0;width:100%;height:400px"></iframe>',
+				attributes: 'data-newsid="'+newsId+'"',
+				cssClass: 'news-embed',
+				height: 400,
+				noMinimize: true
+			});
 		},
 
 		/*********************************************************
@@ -85,6 +116,8 @@
 			} else {
 				this.notifyOnce("PM from "+oName, "\""+message+"\"", 'pm');
 			}
+
+			Storage.logChat('pm-'+toId(oName), ''+name+': '+message);
 
 			var $pmWindow = this.openPM(oName, true);
 
@@ -126,6 +159,10 @@
 			if (autoscroll) {
 				$chatFrame.scrollTop($chat.height());
 			}
+
+			if ($pmWindow.data('minimized') && name.substr(1) !== app.user.get('name')) {
+				$pmWindow.find('h3').addClass('pm-notifying');
+			}
 		},
 		openPM: function(name, dontFocus) {
 			var userid = toId(name);
@@ -137,7 +174,11 @@
 				} else {
 					group = '<small>'+Tools.escapeHTML(group)+'</small>';
 				}
-				var buf = '<div class="pm-window pm-window-'+userid+'" data-userid="'+userid+'" data-name="'+name+'"><h3><button class="closebutton" href="'+app.root+'teambuilder" tabindex="-1"><i class="icon-remove-sign"></i></button>'+group+Tools.escapeHTML(name.substr(1))+'</h3><div class="pm-log"><div class="inner"></div></div>';
+				var buf = '<div class="pm-window pm-window-'+userid+'" data-userid="'+userid+'" data-name="'+name+'">';
+				buf += '<h3><button class="closebutton" href="'+app.root+'teambuilder" tabindex="-1"><i class="icon-remove-sign"></i></button>';
+				buf += '<button class="minimizebutton" href="'+app.root+'teambuilder" tabindex="-1"><i class="icon-minus-sign"></i></button>';
+				buf += group+Tools.escapeHTML(name.substr(1))+'</h3>';
+				buf += '<div class="pm-log"><div class="inner"></div></div>';
 				buf += '<div class="pm-log-add"><form class="chatbox nolabel"><textarea class="textbox" type="text" size="70" autocomplete="off" name="message"></textarea></form></div></div>';
 				$pmWindow = $(buf).prependTo(this.$pmBox);
 				$pmWindow.find('textarea').autoResize({
@@ -163,6 +204,17 @@
 				userid = $(e.currentTarget).closest('.pm-window').data('userid');
 			} else {
 				userid = toId(e);
+			}
+			var $pmWindow;
+			if (!userid) {
+				// not a true PM; just close the window
+				$pmWindow = $(e.currentTarget).closest('.pm-window');
+				var newsId = $pmWindow.data('newsid');
+				if (newsId) {
+					$.cookie('showdown_readnews', ''+newsId, {expires: 365});
+				}
+				$pmWindow.remove();
+				return;
 			}
 			$pmWindow = this.$pmBox.find('.pm-window-'+userid)
 			$pmWindow.hide();
@@ -195,6 +247,31 @@
 			}
 
 			if (app.curSideRoom) app.curSideRoom.focus();
+		},
+		minimizePM: function(e) {
+			var $pmWindow;
+			if (e.currentTarget) {
+				e.preventDefault();
+				e.stopPropagation();
+				$pmWindow = $(e.currentTarget).closest('.pm-window');
+			}
+			if (!$pmWindow) {
+				return;
+			}
+
+			var $pmHeader = $pmWindow.find('h3');
+			var $pmContent = $pmWindow.find('.pm-log, .pm-log-add');
+			if (!$pmWindow.data('minimized')) {
+				$pmContent.hide();
+				$pmHeader.addClass('pm-minimized');
+				$pmWindow.data('minimized', true);
+			} else {
+				$pmContent.show();
+				$pmHeader.removeClass('pm-minimized');
+				$pmWindow.data('minimized', false);
+			}
+
+			$pmWindow.find('h3').removeClass('pm-notifying');
 		},
 		focusPM: function(name) {
 			this.openPM(name).prependTo(this.$pmBox).find('textarea[name=message]').focus();
@@ -239,8 +316,11 @@
 					return;
 				}
 				app.dismissPopups();
-				$(e.currentTarget).find('textarea[name=message]').focus();
-				e.stopPropagation();
+				var $target = $(e.currentTarget);
+				if ($target.data('minimized')) {
+					this.minimizePM(e);
+				}
+				$target.find('textarea[name=message]').focus();
 			}
 		},
 
@@ -378,7 +458,7 @@
 		},
 		updateTeams: function() {
 			if (!window.BattleFormats) return;
-			var teams = app.user.teams;
+			var teams = Storage.teams;
 			var self = this;
 
 			this.$('button[name=team]').each(function(i, el) {
@@ -397,16 +477,29 @@
 		},
 
 		// challenge buttons
-		challenge: function(name) {
+		challenge: function(name, format, team) {
 			var userid = toId(name);
 			var $challenge = this.$('.pm-window-'+userid+' .challenge');
 			if ($challenge.length && !$challenge.find('button[name=dismissChallenge]').length) {
 				return;
 			}
+
+			if (format) format = toId(format);
+			var teamIndex = undefined;
+			if (Storage.teams && team) {
+				var team = toId(team);
+				for (var i = 0; i < Storage.teams.length; i++) {
+					if (team === toId(Storage.teams[i].name || '')) {
+						teamIndex = i;
+						break;
+					}
+				}
+			}
+
 			$challenge = this.openChallenge(name);
 			var buf = '<form class="battleform"><p>Challenge '+Tools.escapeHTML(name)+'?</p>';
-			buf += '<p><label class="label">Format:</label>'+this.renderFormats()+'</p>';
-			buf += '<p><label class="label">Team:</label>'+this.renderTeams()+'</p>';
+			buf += '<p><label class="label">Format:</label>'+this.renderFormats(format)+'</p>';
+			buf += '<p><label class="label">Team:</label>'+this.renderTeams(format, teamIndex)+'</p>';
 			buf += '<p class="buttonbar"><button name="makeChallenge"><strong>Challenge</strong></button> <button name="dismissChallenge">Cancel</button></p></form>';
 			$challenge.html(buf);
 		},
@@ -418,7 +511,7 @@
 			var format = $pmWindow.find('button[name=format]').val();
 			var teamIndex = $pmWindow.find('button[name=team]').val();
 			var team = null;
-			if (app.user.teams[teamIndex]) team = app.user.teams[teamIndex].team;
+			if (Storage.teams[teamIndex]) team = Storage.teams[teamIndex].team;
 			if (!window.BattleFormats[format].team && !team) {
 				app.addPopupMessage("You need to go into the Teambuilder and build a team for this format.");
 				return;
@@ -442,7 +535,7 @@
 			var format = $pmWindow.find('button[name=format]').val();
 			var teamIndex = $pmWindow.find('button[name=team]').val();
 			var team = null;
-			if (app.user.teams[teamIndex]) team = app.user.teams[teamIndex].team;
+			if (Storage.teams[teamIndex]) team = Storage.teams[teamIndex].team;
 			if (!window.BattleFormats[format].team && !team) {
 				app.addPopupMessage("You need to go into the Teambuilder and build a team for this format.");
 				return;
@@ -488,6 +581,7 @@
 					if (BattleFormats['randombattle']) {
 						this.curFormat = 'randombattle';
 					} else for (var i in BattleFormats) {
+						if (!BattleFormats[i].searchShow || !BattleFormats[i].challengeShow) continue;
 						this.curFormat = i;
 						break;
 					}
@@ -499,7 +593,7 @@
 		curTeamFormat: '',
 		curTeamIndex: -1,
 		renderTeams: function(formatid, teamIndex) {
-			if (!app.user.teams || !window.BattleFormats) {
+			if (!Storage.teams || !window.BattleFormats) {
 				return '<button class="select teamselect" name="team" disabled><em>Loading...</em></button>';
 			}
 			if (!formatid) formatid = this.curFormat;
@@ -509,7 +603,7 @@
 			if (window.BattleFormats[formatid].team) {
 				return '<button class="select teamselect preselected" name="team" value="random" disabled>'+TeamPopup.renderTeam('random')+'</button>';
 			}
-			var teams = app.user.teams;
+			var teams = Storage.teams;
 			if (!teams.length) {
 				return '<button class="select teamselect" name="team" disabled>You have no teams</button>'
 			}
@@ -552,7 +646,7 @@
 			var format = $formatButton.val();
 			var teamIndex = $teamButton.val();
 			var team = null;
-			if (app.user.teams[teamIndex]) team = app.user.teams[teamIndex].team;
+			if (Storage.teams[teamIndex]) team = Storage.teams[teamIndex].team;
 			if (!window.BattleFormats[format].team && !team) {
 				app.addPopupMessage("You need to go into the Teambuilder and build a team for this format.");
 				return;
@@ -586,7 +680,7 @@
 		initialize: function(data) {
 			var curFormat = data.format;
 			var selectType = (this.sourceEl.closest('form').data('search') ? 'search' : 'challenge');
-			var bufs = ['',''];
+			var bufs = [];
 			var curBuf = 0;
 			var curSection = '';
 			for (var i in BattleFormats) {
@@ -597,17 +691,33 @@
 
 				if (format.section && format.section !== curSection) {
 					curSection = format.section;
-					curBuf = (curSection === 'Doubles' || curSection === 'Past Generations') ? 1 : 0;
+					if (!BattleFormats._supportsColumns) {
+						curBuf = (curSection === 'Doubles' || curSection === 'Past Generations') ? 2 : 1;
+					} else {
+						curBuf = format.column || 1;
+					}
+					if (!bufs[curBuf]) {
+						bufs[curBuf] = '';
+					}
 					bufs[curBuf] += '<li><h3>'+Tools.escapeHTML(curSection)+'</li>';
 				}
 				bufs[curBuf] += '<li><button name="selectFormat" value="' + i + '"' + (curFormat === i ? ' class="sel"' : '') + '>' + Tools.escapeHTML(format.name) + '</button></li>';
 			}
 
-			if (bufs[1]) {
-				this.$el.html('<ul class="popupmenu" style="float:left">'+bufs[0]+'</ul><ul class="popupmenu" style="float:left;padding-left:5px">'+bufs[1]+'</ul><div style="clear:left"></div>');
-			} else {
-				this.$el.html('<ul class="popupmenu">'+bufs[0]+'</ul>');
+			var html = '';
+			for (var i = 1, l = bufs.length; i < l; i++) {
+				html += '<ul class="popupmenu"';
+				if (l > 1) {
+					html += ' style="float:left';
+					if (i > 0) {
+						html += ';padding-left:5px';
+					}
+					html += '"';
+				}
+				html += '>' + bufs[i] + '</ul>';
 			}
+			html += '<div style="clear:left"></div>';
+			this.$el.html(html);
 		},
 		selectFormat: function(format) {
 			var $teamButton = this.sourceEl.closest('form').find('button[name=team]');
@@ -622,7 +732,7 @@
 		initialize: function(data) {
 			var bufs = ['','','','',''];
 			var curBuf = 0;
-			var teams = app.user.teams;
+			var teams = Storage.teams;
 
 			var bufBoundary = 128;
 			if (teams.length > 128 && $(window).width() > 1080) {
@@ -693,7 +803,7 @@
 				}
 				return buf;
 			}
-			var team = app.user.teams[i];
+			var team = Storage.teams[i];
 			if (!team) return 'Error: Corrupted team';
 			var buf = ''+Tools.escapeHTML(team.name)+'<br />';
 			for (var i=0; i<team.team.length; i++) {
@@ -801,18 +911,22 @@
 			if (Config.version) buf += '<p style="text-align:center;color:#555555"><small>Version <strong>'+Config.version+'</strong></small></p>';
 			buf += '<h2>Owner</h2>';
 			buf += '<ul><li><p><a href="http://guangcongluo.com/" target="_blank" class="subtle"><strong>Guangcong Luo</strong> [Zarel]</a> <small>&ndash; Development, Design</small></p></li></ul>';
-			buf += '<h2>Senior Staff</h2>';
-			buf += '<ul><li><p><a href="https://cathyjf.com/" target="_blank" class="subtle"><strong>Cathy J. Fitzpatrick</strong> [cathyjf]</a> <small>&ndash; Development</small></p></li></ul>';
 			buf += '<h2>Staff</h2>';
 			buf += '<ul><li><p><a href="http://meltsner.com/" target="_blank" class="subtle"><strong>Bill Meltsner</strong> [bmelts]</a> <small>&ndash; Development</small></p></li>';
+			buf += '<li><p><strong>Hugh Gordon</strong> [V4] <small>&ndash; Research (game mechanics), Development</small></p></li>';
+			buf += '<li><p><strong>Juanma Serrano</strong> [Joim] <small>&ndash; Development</small></p></li>';
+			buf += '<li><p>[<strong>The Immortal</strong>] <small>&ndash; Development</small></p></li></ul>';
+			buf += '<h2>Retired Staff</h2>';
+			buf += '<ul><li><p><a href="https://cathyjf.com/" target="_blank" class="subtle"><strong>Cathy J. Fitzpatrick</strong> [cathyjf]</a> <small>&ndash; Development</small></p></li>';
 			buf += '<li><p><strong>Mathieu Dias-Martins</strong> [Marty-D] <small>&ndash; Research (game mechanics), Development</small></p></li></ul>';
 			buf += '<h2>Contributors</h2>';
 			buf += '<ul><li><p><strong>Andrew Goodsell</strong> [Zracknel] <small>&ndash; Art (battle weather backdrops)</small></p></li>';
 			buf += '<li><p><strong>Cody Thompson</strong> [Rising_Dusk] <small>&ndash; Development</small></p></li>';
-			buf += '<li><p><strong>Juanma Serrano</strong> [Joim] <small>&ndash; Development</small></p></li>';
 			buf += '<li><p><a href="http://kyle-dove.deviantart.com/" target="_blank" class="subtle"><strong>Kyle Dove</strong> [Kyle_Dove]</a> <small>&ndash; Art (battle backdrops)</small></p></li>';
+			buf += '<li><p><strong>Leonardo Julca</strong> [Slayer95] <small>&ndash; Development</small></p></li>';
+			buf += '<li><p><strong>Robin Vandenbrande</strong> [Quinella] <small>&ndash; Development</small></p></li>';
 			buf += '<li><p><a href="http://yilx.deviantart.com/" target="_blank" class="subtle"><strong>Samuel Teo</strong> [Yilx]</a> <small>&ndash; Art (main background)</small></p></li>';
-			buf += '<li><p>[<strong>The Immortal</strong>] <small>&ndash; Development</small></p></li></ul>';
+			buf += '<li><p><a href="http://vtas.deviantart.com/" target="_blank" class="subtle"><strong>Vivian Zou</strong> [Vtas]</a> <small>&ndash; Art (alternate main background)</small></p></li>';
 			buf += '<p class="buttonbar"><button name="close" class="autofocus"><strong>They sound like cool people</strong></button></p>';
 			this.$el.addClass('credits').html(buf);
 		}

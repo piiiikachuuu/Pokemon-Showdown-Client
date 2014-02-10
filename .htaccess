@@ -22,12 +22,12 @@ RewriteRule ^style/font/.*?\.(eot|svg|ttf|woff)$ - [E=SAFE_RESOURCE:1]
 Header set Access-Control-Allow-Origin * env=SAFE_RESOURCE
 
 # Redirect old battles to their corresponding replay
+# RewriteCond %{HTTP_HOST} ^play\.pokemonshowdown\.com$ [NC]
+# RewriteRule ^battle-([a-z0-9]+-3[0-3][0-9]{6})$ http%{ENV:P_SUFFIX}://replay.pokemonshowdown.com/$1 [R=302,L]
 RewriteCond %{HTTP_HOST} ^play\.pokemonshowdown\.com$ [NC]
-RewriteRule ^battle-([a-z0-9]+-3[0-3][0-9]{6})$ http%{ENV:P_SUFFIX}://pokemonshowdown.com/replay/$1 [R=302,L]
+RewriteRule ^battle-([a-z0-9]+-?[1-7][0-9]{7})$ http%{ENV:P_SUFFIX}://replay.pokemonshowdown.com/$1 [R=302,L]
 RewriteCond %{HTTP_HOST} ^play\.pokemonshowdown\.com$ [NC]
-RewriteRule ^battle-([a-z0-9]+-?[1-2][0-9]{7})$ http%{ENV:P_SUFFIX}://pokemonshowdown.com/replay/$1 [R=302,L]
-RewriteCond %{HTTP_HOST} ^play\.pokemonshowdown\.com$ [NC]
-RewriteRule ^battle-([a-z]+[0-9]{1,7})$ http%{ENV:P_SUFFIX}://pokemonshowdown.com/replay/$1 [R=302,L]
+RewriteRule ^battle-([a-z]+[0-9]{1,7})$ http%{ENV:P_SUFFIX}://replay.pokemonshowdown.com/$1 [R=302,L]
 
 # TODO: fix bug where you can't join lobby directly
 RewriteRule ^lobby/?$ / [R=301,L]
@@ -54,9 +54,11 @@ Header set X-Robots-Tag "noindex" env=INDEX_PAGE
 RewriteCond %{ENV:SCRIPT_URL} ^/(lobby/?)?$
 RewriteCond %{HTTP_REFERER} !^$
 RewriteCond %{HTTP_REFERER} !^https?:\/\/([a-z0-9-]+.)?(pokemonshowdown\.com|appjs)
+RewriteCond %{HTTP_HOST} ^play\.pokemonshowdown\.com$
 RewriteCond %{REMOTE_ADDR} !=127.0.0.1
 RewriteCond %{HTTP:CF-Connecting-IP} !=173.252.196.254
 RewriteCond %{HTTP:CF-Connecting-IP} !=198.27.67.31
+RewriteCond %{HTTP:CF-Connecting-IP} !=162.243.13.96
 RewriteRule .* - [E=LOBBY_REDIRECT:1]
 
 RewriteCond %{ENV:LOBBY_REDIRECT}%{ENV:P_SUFFIX} =1
@@ -84,5 +86,8 @@ RewriteRule ^\.gitignore$ - [F]
 RewriteRule ^README\.md$ - [F]
 RewriteRule ^index\.template\.html$ - [F]
 RewriteRule ^testclient\.html$ - [F]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(apple-touch-icon-precomposed\.png)$ - [R=404,L]
 
 </IfModule>

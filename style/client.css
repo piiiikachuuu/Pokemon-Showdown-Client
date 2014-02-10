@@ -12,7 +12,7 @@ body {
 	font-family: Verdana, Helvetica, Arial, sans-serif;
 
 	/* license: CC-BY source: http://commons.wikimedia.org/wiki/File:%22La_piedra%22_(2809466426).jpg */
-	background: #546bac url(../fx/client-bg-3.jpg) no-repeat left center fixed;
+	background: #546bac url(../fx/client-bg-horizon.jpg) no-repeat left center fixed;
   -webkit-background-size: cover;
   -moz-background-size: cover;
   -o-background-size: cover;
@@ -45,7 +45,7 @@ body {
 	padding: 2px 3px;
 	font-family: Verdana, Helvetica, Arial, sans-serif;
 	font-size: 9pt;
-	
+
 	box-shadow: inset 0px 1px 2px #CCCCCC, 1px 1px 0 rgba(255,255,255,.6);
 	background: #F8FBFD;
 }
@@ -293,7 +293,8 @@ a.subtle:hover {
 .tabbar a.cur + .closebutton {
 	top: 4px;
 }
-.closebutton {
+.closebutton,
+.minimizebutton {
 	text-decoration: none;
 	font-size: 14px;
 	color: #999999;
@@ -304,10 +305,12 @@ a.subtle:hover {
 	background: transparent;
 	cursor: pointer;
 }
-.closebutton:hover {
+.closebutton:hover,
+.minimizebutton:hover {
 	color: #BB2222;
 }
-.closebutton:active {
+.closebutton:active,
+.minimizebutton:active {
 	color: #661111;
 }
 
@@ -599,8 +602,21 @@ p.or:after {
 .pm-window h3:hover {
 	color: #333333;
 }
-.pm-window h3 .closebutton {
+.pm-window h3.pm-minimized {
+	border-radius: 5px;
+}
+.pm-window h3.pm-notifying {
+	border-color: #AA8866;
+	background: #E3C3A3;
+}
+.pm-window h3.pm-notifying:hover {
+	border-color: #604020;
+	background: #CFAF8F;
+}
+.pm-window h3 .closebutton,
+.pm-window h3 .minimizebutton {
 	float: right;
+	padding-right: 1px;
 }
 .pm-window h3 small {
 	color: #888888;
@@ -660,6 +676,7 @@ p.or:after {
 	top: 0;
 	right: 0;
 	left: 0;
+	width: auto;
 	margin: 0;
 	padding: 0;
 }
@@ -816,7 +833,7 @@ p.or:after {
 	padding: 1px 4px 2px 4px;
 	border: 1px solid #BBCCDD;
 	background: #F8FBFD;
-	
+
 	border-radius: 4px;
 	text-decoration: none;
 	color: #336699;
@@ -962,6 +979,228 @@ a.ilink:hover {
 	font-family: Verdana, Helvetica, Arial, sans-serif;
 }
 
+/* Tournaments */
+
+.tournament-wrapper {
+	display: none;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 2em;
+	line-height: 2em;
+	text-align: center;
+	border-bottom: 1px #aaa solid;
+}
+.tournament-wrapper.active {
+	display: block;
+}
+.tournament-wrapper.active + .chat-log {
+	top: 2.4em;
+}
+
+.tournament-title {
+	font-weight: bold;
+	cursor: pointer;
+}
+
+.tournament-status, .tournament-toggle {
+	position: absolute;
+	top: 0;
+	padding: 0 0.5em;
+	font-weight: normal;
+	font-size: 80%;
+	background-color: rgba(242, 247, 250, 0.85);
+	border-right: 1px #aaa solid;
+}
+.tournament-status {
+	left: 0;
+}
+.tournament-toggle {
+	right: 0;
+	border-left: 1px #aaa solid;
+}
+
+.tournament-box {
+	position: absolute;
+	top: 2em;
+	left: 0;
+	right: 0;
+	z-index: 1;
+	line-height: 1em;
+	border-bottom: 1px #aaa solid;
+	border-right: 1px #aaa solid;
+	background-color: rgba(242, 247, 250, 0.85);
+	max-height: 0;
+	overflow: hidden;
+	transition: max-height 0.5s ease-in-out;
+	-o-transition: max-height 0.5s ease-in-out;
+	-moz-transition: max-height 0.5s ease-in-out;
+	-webkit-transition: max-height 0.5s ease-in-out;
+}
+
+.tournament-bracket {
+	max-height: 200px;
+	padding: 10px;
+	overflow: hidden;
+	font-size: 8pt;
+}
+.tournament-bracket-overflowing {
+	height: 200px;
+	padding: 0;
+	position: relative;
+	left: 0;
+	top: 0;
+}
+
+.tournament-popout-link {
+	position: absolute;
+	bottom: 0.5em;
+	right: 0.5em;
+}
+.tournament-popout-bracket {
+	/* Actual max-width and -height setting is in client-chat-tournament.js (BracketPopup)
+	max-width: 80%;
+	max-height: 80%;*/
+	max-width: inherit !important;
+	position: relative !important;
+	left: 0;
+	top: 0;
+	overflow: hidden;
+	padding: 0;
+	font-size: 8pt;
+	text-align: center;
+}
+.tournament-popout-bracket > *[class^='tournament-bracket-'] {
+	position: absolute;
+	right: 0;
+	top: 0;
+}
+.tournament-popout-bracket > .buttonbar {
+	position: absolute;
+	right: 0.5em;
+	bottom: 0;
+}
+
+.tournament-bracket-table {
+	margin: 0 auto;
+	empty-cells: hide;
+	border-bottom: 1px #aaa solid;
+	border-collapse: collapse;
+}
+.tournament-bracket-table td, .tournament-bracket-table th {
+	border: 1px #aaa solid;
+	padding: 5px;
+}
+.tournament-bracket-table td {
+	white-space: nowrap;
+}
+.tournament-bracket-table .empty,
+.tournament-bracket-table .tournament-bracket-table-cell-null {
+	border-width: 0;
+}
+.tournament-bracket-table-cell-result-win {
+	background-color: rgba(0, 255, 0, 0.2)
+}
+.tournament-bracket-table-cell-result-draw {
+	background-color: rgba(255, 255, 0, 0.2)
+}
+.tournament-bracket-table-cell-result-loss {
+	background-color: rgba(255, 0, 0, 0.2)
+}
+
+.tournament-bracket-tree-link {
+	fill: none;
+	stroke: #aaa;
+}
+.tournament-bracket-tree-link-active {
+	stroke: #aa0;
+	stroke-width: 3px;
+}
+.tournament-bracket-tree-node > rect {
+	/* Note: Due to SVG limitations, dimensions and border radii are in client-chat-tournament.js (nodeSize) */
+	fill: rgba(225, 232, 242, 0.7);
+	stroke: rgba(178, 183, 191, 0.7);
+}
+.tournament-bracket-tree-node-win > rect {
+	fill: rgba(0, 255, 0, 0.2);
+	stroke: rgba(0, 255, 0, 0.5);
+}
+.tournament-bracket-tree-node-draw > rect {
+	fill: rgba(255, 255, 0, 0.2);
+	stroke: rgba(255, 255, 0, 0.5);
+}
+.tournament-bracket-tree-node-loss > rect {
+	fill: rgba(255, 0, 0, 0.2);
+	stroke: rgba(255, 0, 0, 0.5);
+}
+.tournament-bracket-tree-node > text {
+	font-size: 0.8em;
+	text-anchor: middle;
+	dominant-baseline: central;
+}
+.tournament-bracket-tree-node > text > a {
+	fill: #248;
+}
+.tournament-bracket-tree-node > text > a:hover {
+	fill: #68c;
+}
+.tournament-bracket-tree-node-match-team {
+	font-weight: bold;
+}
+.tournament-bracket-tree-node-match-team-draw, .tournament-bracket-tree-node-match-team-loss {
+	fill: #aaa;
+}
+
+.tournament-tools {
+	padding: 10px;
+	display: none;
+	border-top: 1px #aaa solid;
+}
+.tournament-tools.active {
+	display: block;
+}
+
+.tournament-join,
+.tournament-leave {
+	display: none;
+}
+.tournament-join.active,
+.tournament-leave.active {
+	display: inline;
+}
+
+.tournament-nomatches,
+.tournament-challenge,
+.tournament-challengeby,
+.tournament-challenging,
+.tournament-challenged {
+	display: none;
+}
+.tournament-nomatches.active,
+.tournament-challenge.active,
+.tournament-challengeby.active,
+.tournament-challenging.active,
+.tournament-challenged.active {
+	display: block;
+}
+
+div[class^='tournament-message-'], div[class*=' tournament-message-'] {
+	font-weight: bold;
+}
+.tournament-message-end-bracket {
+	font-weight: normal !important;
+	max-height: 400px;
+	overflow: hidden;
+	text-align: center;
+}
+.tournament-message-end-bracket-overflowing {
+	height: 400px;
+	position: relative;
+	left: 0;
+	top: 0;
+}
+
 /* Messages */
 
 .message-announce {
@@ -1029,7 +1268,8 @@ a.ilink:hover {
 	overflow-scrolling: touch;
 }
 .chat-log.hasuserlist,
-.chat-log-add.hasuserlist {
+.chat-log-add.hasuserlist,
+.tournament-wrapper.hasuserlist {
 	left: 146px;
 }
 .userlist,
@@ -1582,13 +1822,13 @@ a.ilink:hover {
 	height: 127px;
 	width: 626px;
 	margin-top: 8px;
-	
+
 	background-image: linear-gradient(top, rgb(218,229,240) 10%, rgb(203,214,225) 55%);
 	background-image: -o-linear-gradient(top, rgb(218,229,240) 10%, rgb(203,214,225) 55%);
 	background-image: -moz-linear-gradient(top, rgb(218,229,240) 10%, rgb(203,214,225) 55%);
 	background-image: -webkit-linear-gradient(top, rgb(218,229,240) 10%, rgb(203,214,225) 55%);
 	background-image: -ms-linear-gradient(top, rgb(218,229,240) 10%, rgb(203,214,225) 55%);
-	
+
 	box-shadow: inset 1px 1px 0 rgba(255,255,255,.6);
 }
 .setcol {
@@ -1633,7 +1873,7 @@ a.ilink:hover {
 	font-weight: bold;
 	color: #555555;
 	padding-left: 2px;
-	
+
 	text-shadow: 1px 1px 0 rgba(255,255,255,.6);
 }
 .setchart-nickname label {
@@ -1781,7 +2021,7 @@ a.ilink:hover {
 	font-size: 9pt;
 	width: 104px;
 	height: 20px;
-	
+
 	box-shadow: inset 0px 1px 2px #CCCCCC, 1px 1px 0 rgba(255,255,255,.6);
 	background: #F8FBFD;
 	color: black;
@@ -2040,13 +2280,13 @@ a.ilink:hover {
  * <blink>
  *********************************************************/
 
-@-webkit-keyframes blinker {  
+@-webkit-keyframes blinker {
 	from { opacity: 1.0; }
 	to { opacity: 0.0; }
 }
 @keyframes blinker {
-        from { opacity: 1.0; }
-        to { opacity: 0.0; }
+	from { opacity: 1.0; }
+	to { opacity: 0.0; }
 }
 blink {
 	-webkit-animation-name: blinker;
@@ -2056,6 +2296,6 @@ blink {
 	animation-name: blinker;
 	animation-iteration-count: infinite;
 	animation-timing-function: cubic-bezier(1.0,0,0,1.0);
-	animation-duration: 1s; 
+	animation-duration: 1s;
 	text-decoration: none;
 }

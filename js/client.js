@@ -20,22 +20,35 @@ setTimeout(function() {
 				$('head').append($link);
 				app.navigate("/");
 				app.navigate = function() {};
-				Tools.resourcePrefix = "amethyst-server.no-ip.org";
+				Tools.resourcePrefix = "play.frostserver.net";
 			}
 		}
 	}
 }, 1000);
 (function($) {
+	if (window.nodewebkit) {
+		window.gui = require('nw.gui');
+		$('body').on('click', 'a', function(e) {
+			if (this.target === '_blank') {
+				gui.Shell.openExternal(this.href);
+				e.preventDefault();
+				e.stopPropagation();
+				e.stopImmediatePropagation();
+			}
+		});
+		window.nwWindow = gui.Window.get();
+	}
+
 	Config.version = '0.9.0';
 	Config.origindomain = 'play.pokemonshowdown.com';
 
 	// `defaultserver` specifies the server to use when the domain name in the
 	// address bar is `Config.origindomain`.
 	Config.defaultserver = {
-		id: 'amethyst',
-		host: host,
+		id: 'frost',
+		host: 'amethyst.xiaotai.org',
 		port: 443,
-		httpport: port,
+		httpport: 2000,
 		altport: 80,
 		registered: true
 	};
@@ -212,34 +225,6 @@ setTimeout(function() {
 				expires: 14
 			});
 		},
-		/**
-		 * This function loads teams from `localStorage` or cookies. This function
-		 * is only used if the client is running on `play.pokemonshowdown.com`. If the
-		 * client is running on another domain, then teams are received from
-		 * `crossdomain.php` instead.
-		 */
-		teams: null,
-		loadTeams: function() {
-			this.teams = [];
-			if (window.localStorage) {
-				var teamString = localStorage.getItem('showdown_teams');
-				if (teamString) this.teams = JSON.parse(teamString);
-			} else {
-				this.cookieTeams = true;
-				var savedTeam = $.parseJSON($.cookie('showdown_team1'));
-				if (savedTeam) {
-					this.teams.push(savedTeam);
-				}
-				savedTeam = $.parseJSON($.cookie('showdown_team2'));
-				if (savedTeam) {
-					this.teams.push(savedTeam);
-				}
-				savedTeam = $.parseJSON($.cookie('showdown_team3'));
-				if (savedTeam) {
-					this.teams.push(savedTeam);
-				}
-			}
-		}
 	});
 
 	var App = this.App = Backbone.Router.extend({
@@ -250,7 +235,6 @@ setTimeout(function() {
 		focused: true,
 		initialize: function() {
 			window.app = this;
-			$('#main').html('');
 			this.initializeRooms();
 			this.initializePopups();
 
@@ -258,7 +242,7 @@ setTimeout(function() {
 			this.ignore = {};
 
 			// down
-			// if (document.location.hostname === 'play.pokemonshowdown.com') this.down = true;
+			// if (document.location.hostname === 'play.pokemonshowdown.com') this.down = 'ddos';
 			if (document.location.hostname === 'play.pokemonshowdown.com') {
 				app.supportsRooms = true;
 			}
@@ -275,7 +259,9 @@ setTimeout(function() {
 
 			var self = this;
 
+			this.prefsLoaded = false;
 			this.on('init:loadprefs', function() {
+				self.prefsLoaded = true;
 				var bg = Tools.prefs('bg');
 				if (bg) {
 					$(document.body).css({
@@ -292,6 +278,8 @@ setTimeout(function() {
 
 				var musicVolume = Tools.prefs('musicvolume');
 				if (musicVolume !== undefined) BattleSound.setBgmVolume(musicVolume);
+
+				if (Tools.prefs('logchat')) Storage.startLoggingChat();
 			});
 
 			this.on('init:unsupported', function() {
@@ -323,16 +311,29 @@ setTimeout(function() {
 
 			this.on('response:rooms', this.roomsResponse, this);
 
-			$(window).on('focus click', function() {
-				if (!self.focused) {
-					self.focused = true;
-					if (self.curRoom) self.curRoom.dismissNotification();
-					if (self.curSideRoom) self.curSideRoom.dismissNotification();
-				}
-			});
-			$(window).on('blur', function() {
-				self.focused = false;
-			});
+			if (window.nodewebkit) {
+				nwWindow.on('focus', function() {
+					if (!self.focused) {
+						self.focused = true;
+						if (self.curRoom) self.curRoom.dismissNotification();
+						if (self.curSideRoom) self.curSideRoom.dismissNotification();
+					}
+				});
+				nwWindow.on('blur', function() {
+					self.focused = false;
+				});
+			} else {
+				$(window).on('focus click', function() {
+					if (!self.focused) {
+						self.focused = true;
+						if (self.curRoom) self.curRoom.dismissNotification();
+						if (self.curSideRoom) self.curSideRoom.dismissNotification();
+					}
+				});
+				$(window).on('blur', function() {
+					self.focused = false;
+				});
+			}
 
 			this.initializeConnection();
 
@@ -404,9 +405,9 @@ setTimeout(function() {
 						var origin = 'https://' + Config.origindomain;
 						if (e.origin !== origin) return;
 						if (e.data === 'init') {
-							app.user.loadTeams();
+							Storage.loadTeams();
 							e.source.postMessage($.toJSON({
-								teams: $.toJSON(app.user.teams),
+								teams: $.toJSON(Storage.teams),
 								prefs: $.toJSON(Tools.prefs.data)
 							}), origin);
 						} else if (e.data === 'done') {
@@ -432,7 +433,7 @@ setTimeout(function() {
 			}
 			// Simple connection: no cross-domain logic needed.
 			Config.server = Config.server || Config.defaultserver;
-			this.user.loadTeams();
+			Storage.loadTeams();
 			this.trigger('init:loadprefs');
 			return this.connect();
 		},
@@ -513,13 +514,13 @@ setTimeout(function() {
 						};
 						// teams
 						if (data.teams) {
-							self.user.cookieTeams = false;
-							self.user.teams = $.parseJSON(data.teams) || [];
+							Storage.teams = $.parseJSON(data.teams) || [];
 						} else {
-							self.user.teams = [];
+							Storage.teams = [];
 						}
-						TeambuilderRoom.saveTeams = function() {
-							postCrossDomainMessage({teams: $.toJSON(app.user.teams)});
+						self.trigger('init:loadteams');
+						Storage.saveTeams = function() {
+							postCrossDomainMessage({teams: $.toJSON(Storage.teams)});
 						};
 						// prefs
 						if (data.prefs) {
@@ -735,6 +736,10 @@ setTimeout(function() {
 			this.socket.onclose = function() {
 				if (!socketopened) {
 					if (Config.server.altport && !altport) {
+						if (document.location.protocol === 'https:') {
+							return document.location.replace('http://' +
+								document.location.host + document.location.pathname);
+						}
 						altport = true;
 						Config.server.port = Config.server.altport;
 						self.socket = reconstructSocket(self.socket);
@@ -800,8 +805,21 @@ setTimeout(function() {
 				} else {
 					this.joinRoom(roomid, roomType, true);
 				}
+			} else if ((data+'|').substr(0,8) === '|expire|') {
+				var room = this.rooms[roomid];
+				if (room) {
+					room.expired = true;
+					if (room.updateUser) room.updateUser();
+				}
+				return;
 			} else if ((data+'|').substr(0,8) === '|deinit|' || (data+'|').substr(0,8) === '|noinit|') {
 				if (!roomid) roomid = 'lobby';
+
+				if (this.rooms[roomid] && this.rooms[roomid].expired) {
+					// expired rooms aren't closed when left
+					return;
+				}
+
 				var isdeinit = (data.charAt(1) === 'd');
 				data = data.substr(8);
 				var pipeIndex = data.indexOf('|');
@@ -937,13 +955,25 @@ setTimeout(function() {
 		parseFormats: function(formatsList) {
 			var isSection = false;
 			var section = '';
+
+			var column = 0;
+			var columnChanged = false;
+
 			BattleFormats = {};
 			for (var j=1; j<formatsList.length; j++) {
 				if (isSection) {
 					section = formatsList[j];
 					isSection = false;
-				} else if (formatsList[j] === '') {
+				} else if (formatsList[j] === '' || (formatsList[j].substr(0, 1) === ',' && !isNaN(formatsList[j].substr(1)))) {
 					isSection = true;
+
+					if (formatsList[j]) {
+						var newColumn = parseInt(formatsList[j].substr(1)) || 0;
+						if (column !== newColumn) {
+							column = newColumn;
+							columnChanged = true;
+						}
+					}
 				} else {
 					var searchShow = true;
 					var challengeShow = true;
@@ -976,6 +1006,7 @@ setTimeout(function() {
 									name: $.trim(name.substr(0, parenPos)),
 									team: team,
 									section: section,
+									column: column,
 									rated: challengeShow && searchShow,
 									isTeambuilderFormat: true,
 									effectType: 'Format'
@@ -992,6 +1023,7 @@ setTimeout(function() {
 						name: name,
 						team: team,
 						section: section,
+						column: column,
 						searchShow: searchShow,
 						challengeShow: challengeShow,
 						rated: challengeShow && searchShow,
@@ -1001,6 +1033,7 @@ setTimeout(function() {
 					};
 				}
 			}
+			BattleFormats._supportsColumns = columnChanged;
 			this.trigger('init:formats');
 		},
 		uploadReplay: function(data) {
@@ -1115,7 +1148,12 @@ setTimeout(function() {
 				}
 			}
 
-			var el = $('<div class="ps-room" style="display:none"></div>').appendTo('body');
+			var el;
+			if (!id) {
+				el = $('#mainmenu');
+			} else {
+				el = $('<div class="ps-room" style="display:none"></div>').appendTo('body');
+			}
 			var typeName = '';
 			if (typeof type === 'string') {
 				typeName = type;
@@ -1196,11 +1234,12 @@ setTimeout(function() {
 				return;
 			}
 			var leftMin = (this.curRoom.minWidth || this.curRoom.bestWidth);
+			var leftMinMain = (this.curRoom.minMainWidth || leftMin);
 			var rightMin = (this.sideRoom.minWidth || this.sideRoom.bestWidth);
 			var available = $(window).width();
 			if (this.curRoom.isSideRoom) {
 				// we're trying to focus a side room
-				if (available >= this.rooms[''].tinyWidth + leftMin) {
+				if (available >= this.rooms[''].tinyWidth + leftMinMain) {
 					// it fits to the right of the main menu, so do that
 					this.curSideRoom = this.sideRoom = this.curRoom;
 					this.curRoom = this.rooms[''];
@@ -1295,6 +1334,19 @@ setTimeout(function() {
 				return true;
 			}
 			return false;
+		},
+		openInNewWindow: function(url) {
+			if (window.nodewebkit) {
+				gui.Shell.openExternal(url);
+			} else {
+				window.open(url, '_blank');
+			}
+		},
+		clickLink: function(e) {
+			if (window.nodewebkit) {
+				gui.Shell.openExternal(e.target.href);
+				return false;
+			}
 		},
 
 		/*********************************************************
@@ -1613,6 +1665,8 @@ setTimeout(function() {
 			if (!this.notifications) this.notifications = {};
 			if (app.focused && (this === app.curRoom || this == app.curSideRoom)) {
 				this.notifications[tag] = {};
+			} else if (window.nodewebkit) {
+				nwWindow.requestAttention(true);
 			} else if (window.Notification) {
 				// old one doesn't need to be closed; sending the tag should
 				// automatically replace the old notification
@@ -1628,6 +1682,11 @@ setTimeout(function() {
 				notification.onclick = function() {
 					self.clickNotification(tag);
 				};
+				if (Tools.prefs('temporarynotifications')) {
+					setTimeout(function () {
+						notification.cancel();
+					}, 5000);
+				}
 				if (once) notification.psAutoclose = true;
 			} else if (window.macgap) {
 				macgap.growl.notify({
@@ -1648,6 +1707,7 @@ setTimeout(function() {
 			return this.notify(title, body, tag, true);
 		},
 		closeNotification: function(tag, alreadyClosed) {
+			if (window.nodewebkit) nwWindow.requestAttention(false);
 			if (!this.notifications) return;
 			if (!tag) {
 				for (tag in this.notifications) {
@@ -1666,6 +1726,7 @@ setTimeout(function() {
 			}
 		},
 		dismissNotification: function(tag) {
+			if (window.nodewebkit) nwWindow.requestAttention(false);
 			if (!this.notifications) return;
 			if (!tag) {
 				for (tag in this.notifications) {
@@ -1861,6 +1922,7 @@ setTimeout(function() {
 				'&': "Leader (&amp;)",
 				'@': "Moderator (@)",
 				'%': "Driver (%)",
+				'\u2605': "Player (\u2605)",
 				'+': "Voiced (+)",
 				'â€½': "<span style='color:#777777'>Locked (â€½)</span>",
 				'!': "<span style='color:#777777'>Muted (!)</span>"
@@ -2201,10 +2263,12 @@ setTimeout(function() {
 		events: {
 			'change input[name=noanim]': 'setNoanim',
 			'change input[name=nolobbypm]': 'setNolobbypm',
+			'change input[name=temporarynotifications]': 'setTemporaryNotifications',
 			'change input[name=ignorespects]': 'setIgnoreSpects',
 			'change select[name=bg]': 'setBg',
 			'change select[name=timestamps-lobby]': 'setTimestampsLobby',
 			'change select[name=timestamps-pms]': 'setTimestampsPMs',
+			'change input[name=logchat]': 'setLogChat',
 			'click img': 'avatars'
 		},
 		update: function() {
@@ -2216,9 +2280,13 @@ setTimeout(function() {
 			buf += '<p><button name="avatars">Change avatar</button></p>';
 
 			buf += '<hr />';
-			buf += '<p><label class="optlabel">Background: <select name="bg"><option value="">Waterfall</option><option value="#344b6c"'+(Tools.prefs('bg')?' selected="selected"':'')+'>Solid blue</option></select></label></p>';
+			buf += '<p><label class="optlabel">Background: <select name="bg"><option value="">Horizon</option><option value="#546bac url(/fx/client-bg-3.jpg) no-repeat left center fixed">Waterfall</option><option value="#546bac url(/fx/client-bg-ocean.jpg) no-repeat left center fixed">Ocean</option><option value="#344b6c"'+(Tools.prefs('bg')?' selected="selected"':'')+'>Solid blue</option></select></label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="noanim"'+(Tools.prefs('noanim')?' checked':'')+' /> Disable animations</label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="nolobbypm"'+(Tools.prefs('nolobbypm')?' checked':'')+' /> Don\'t show PMs in lobby chat</label></p>';
+
+			if (window.Notification) {
+				buf += '<p><label class="optlabel"><input type="checkbox" name="temporarynotifications"'+(Tools.prefs('temporarynotifications')?' checked':'')+' /> Temporary notifications</label></p>';
+			}
 
 			var timestamps = this.timestamps = (Tools.prefs('timestamps') || {});
 			buf += '<p><label class="optlabel">Timestamps in lobby chat: <select name="timestamps-lobby"><option value="off">Off</option><option value="minutes"'+(timestamps.lobby==='minutes'?' selected="selected"':'')+'>[HH:MM]</option><option value="seconds"'+(timestamps.lobby==='seconds'?' selected="selected"':'')+'>[HH:MM:SS]</option></select></label></p>';
@@ -2229,6 +2297,13 @@ setTimeout(function() {
 				buf += '<hr />';
 				buf += '<h3>Current room</h3>';
 				buf += '<p><label class="optlabel"><input type="checkbox" name="ignorespects"'+(app.curRoom.battle.ignoreSpects?' checked':'')+'> Ignore spectators</label></p>';
+			}
+
+			if (window.nodewebkit) {
+				buf += '<hr />';
+				buf += '<h3>Desktop app</h3>';
+				buf += '<p><label class="optlabel"><input type="checkbox" name="logchat"'+(Tools.prefs('logchat')?' checked':'')+'> Log chat</label></p>';
+				buf += '<p id="openLogFolderButton"'+(Storage.dir?'':' style="display:none"')+'><button name="openLogFolder">Open log folder</button></p>';
 			}
 
 			buf += '<hr />';
@@ -2247,6 +2322,19 @@ setTimeout(function() {
 			}
 			this.$el.html(buf).css('min-width', 160);
 		},
+		openLogFolder: function() {
+			Storage.revealFolder();
+		},
+		setLogChat: function(e) {
+			var logchat = !!e.currentTarget.checked;
+			if (logchat) {
+				Storage.startLoggingChat();
+				$('#openLogFolderButton').show();
+			} else {
+				Storage.stopLoggingChat();
+			}
+			Tools.prefs('logchat', logchat);
+		},
 		setNoanim: function(e) {
 			var noanim = !!e.currentTarget.checked;
 			Tools.prefs('noanim', noanim);
@@ -2254,6 +2342,10 @@ setTimeout(function() {
 		setNolobbypm: function(e) {
 			var nolobbypm = !!e.currentTarget.checked;
 			Tools.prefs('nolobbypm', nolobbypm);
+		},
+		setTemporaryNotifications: function (e) {
+			var temporarynotifications = !!e.currentTarget.checked;
+			Tools.prefs('temporarynotifications', temporarynotifications);
 		},
 		setIgnoreSpects: function(e) {
 			if (app.curRoom.battle) {
@@ -2263,7 +2355,7 @@ setTimeout(function() {
 		setBg: function(e) {
 			var bg = e.currentTarget.value;
 			Tools.prefs('bg', bg);
-			if (!bg) bg = '#546bac url(/fx/client-bg-3.jpg) no-repeat left center fixed';
+			if (!bg) bg = '#546bac url(/fx/client-bg-horizon.jpg) no-repeat left center fixed';
 			$(document.body).css({
 				background: bg,
 				'background-size': 'cover'
@@ -2310,6 +2402,7 @@ setTimeout(function() {
 			buf += '<p><label class="optlabel"><input type="checkbox" name="monospace" ' + (cur.hidemonospace ? 'checked' : '') + ' /> Suppress ``<code>monospace</code>``</label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="strikethrough" ' + (cur.hidestrikethrough ? 'checked' : '') + ' /> Suppress ~~<s>strikethrough</s>~~</label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="me" ' + (cur.hideme ? 'checked' : '') + ' /> Suppress <code>/me</code> <em>action formatting</em></label></p>';
+			buf += '<p><label class="optlabel"><input type="checkbox" name="spoiler" ' + (cur.hidespoiler ? 'checked' : '') + ' /> Suppress spoiler hiding</label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="links" ' + (cur.hidelinks ? 'checked' : '') + ' /> Suppress clickable links</label></p>';
 			buf += '<p><button name="close">Close</button></p>';
 			this.$el.html(buf);
@@ -2354,7 +2447,7 @@ setTimeout(function() {
 		initialize: function(data) {
 			var buf = '';
 			buf = '<p>Your replay has been uploaded! It\'s available at:</p>';
-			buf += '<p><a href="http://pokemonshowdown.com/replay/'+data.id+'" target="_blank">http://pokemonshowdown.com/replay/'+data.id+'</a></p>';
+			buf += '<p><a href="http://replay.pokemonshowdown.com/'+data.id+'" target="_blank">http://replay.pokemonshowdown.com/'+data.id+'</a></p>';
 			buf += '<p><button type="submit" class="autofocus"><strong>Open</strong></button> <button name="close">Cancel</button></p>';
 			this.$el.html(buf).css('max-width', 620);
 		},
@@ -2362,7 +2455,7 @@ setTimeout(function() {
 			this.close();
 		},
 		submit: function(i) {
-			window.open('http://pokemonshowdown.com/replay/battle-'+this.id, '_blank');
+			app.openInNewWindow('http://pokemonshowdown.com/replay/battle-'+this.id);
 			this.close();
 		}
 	});

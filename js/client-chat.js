@@ -23,7 +23,10 @@
 		updateUser: function() {
 			var name = app.user.get('name');
 			var userid = app.user.get('userid');
-			if (!name) {
+			if (this.expired) {
+				this.$chatAdd.html('This room is expired');
+				this.$chatbox = null;
+			} else if (!name) {
 				this.$chatAdd.html('Connecting...');
 				this.$chatbox = null;
 			} else if (!app.user.get('named')) {
@@ -33,7 +36,7 @@
 				this.$chatAdd.html('<form class="chatbox"><label style="' + hashColor(userid) + '">' + Tools.escapeHTML(name) + ':</label> <textarea class="textbox" type="text" size="70" autocomplete="off"></textarea></form>');
 				this.$chatbox = this.$chatAdd.find('textarea');
 				this.$chatbox.autoResize({
-					animate: false,	
+					animate: false,
 					extraSpace: 0
 				});
 				if (this === app.curSideRoom || this === app.curRoom) {
@@ -390,6 +393,15 @@
 
 			switch (cmd.toLowerCase()) {
 			case 'challenge':
+				var targets = target.split(',').map($.trim);
+
+				if (!targets[0]) targets[0] = prompt('Who?');
+				target = toId(targets[0]);
+				this.challengeData = { userid: target, format: targets[1] || '', team: targets[2] || '' };
+				app.on('response:userdetails', this.challengeUserdetails, this);
+				app.send('/cmd userdetails '+target);
+				return false;
+
 			case 'user':
 			case 'open':
 				if (!target) target = prompt('Who?');
@@ -544,7 +556,7 @@
 						if (!data.length) {
 							buffer += '<tr><td colspan="7"><em>This user has not played any ladder games yet.</em></td></tr>';
 						} else {
-							buffer += '<tr><th>Format</th><th>ACRE</th><th>GXE</th><th>Glicko2</th><th>W</th><th>L</th><th>T</th></tr>';
+							buffer += '<tr><th>Format</th><th>Elo</th><th>GXE</th><th>Glicko-1</th><th>COIL</th><th>ARMS</th><th>W</th><th>L</th><th>T</th></tr>';
 							for (var i=0; i<data.length; i++) {
 								var row = data[i];
 								buffer += '<tr><td>'+row.formatid+'</td><td><strong>'+Math.round(row.acre)+'</strong></td><td>'+Math.round(row.gxe,1)+'</td><td>';
@@ -553,6 +565,9 @@
 								} else {
 									buffer += '<em>'+Math.round(row.rpr)+'<small> &#177; '+Math.round(row.rprd)+'</small></em>';
 								}
+								var N=parseInt(row.w)+parseInt(row.l)+parseInt(row.t);
+								buffer += '<td>'+Math.round(40.0*parseFloat(row.gxe)*Math.pow(2.0,-34.0/N),0)+'</td>';
+								buffer += '<td>'+Math.round(1000.0+(2*parseFloat(row.gxe)-100)*N/4.0,0)+'</td>';
 								buffer += '</td><td>'+row.w+'</td><td>'+row.l+'</td><td>'+row.t+'</td></tr>';
 							}
 						}
@@ -598,21 +613,42 @@
 			}
 
 			return text;
+		},
+
+		challengeData: {},
+		challengeUserdetails: function (data) {
+			app.off('response:userdetails', this.challengeUserdetails);
+
+			if (!data || this.challengeData.userid !== data.userid) return;
+
+			if (data.rooms === false) {
+				this.add('This player does not exist or is not online.');
+				return;
+			}
+
+			app.focusRoom('');
+			var name = data.name || this.challengeData.userid;
+			if (/^[a-z0-9]/i.test(name)) name = ' ' + name;
+			app.rooms[''].challenge(name, this.challengeData.format, this.challengeData.team);
 		}
 	});
 
 	var ChatRoom = this.ChatRoom = ConsoleRoom.extend({
 		minWidth: 320,
+		minMainWidth: 580,
 		maxWidth: 1024,
 		isSideRoom: true,
 		initialize: function() {
-			var buf = '<ul class="userlist" style="display:none"></ul><div class="chat-log"><div class="inner"></div></div></div><div class="chat-log-add">Connecting...</div>';
+			var buf = '<ul class="userlist" style="display:none"></ul><div class="tournament-wrapper"></div><div class="chat-log"><div class="inner"></div></div></div><div class="chat-log-add">Connecting...</div>';
 			this.$el.addClass('ps-room-light').html(buf);
 
 			this.$chatAdd = this.$('.chat-log-add');
 			this.$chatFrame = this.$('.chat-log');
 			this.$chat = this.$('.inner');
 			this.$chatbox = null;
+
+			this.$tournamentWrapper = this.$('.tournament-wrapper');
+			this.tournamentBox = null;
 
 			this.users = {};
 			this.userCount = {};
@@ -634,12 +670,15 @@
 				this.$userList.show();
 				this.$chatFrame.addClass('hasuserlist');
 				this.$chatAdd.addClass('hasuserlist');
+				this.$tournamentWrapper.addClass('hasuserlist');
 			} else {
 				this.$userList.hide();
 				this.$chatFrame.removeClass('hasuserlist');
 				this.$chatAdd.removeClass('hasuserlist');
+				this.$tournamentWrapper.removeClass('hasuserlist');
 			}
 			this.$chatFrame.scrollTop(this.$chat.height());
+			if (this.tournamentBox) this.tournamentBox.updateLayout();
 		},
 		show: function() {
 			Room.prototype.show.apply(this, arguments);
@@ -699,12 +738,18 @@
 
 				case 'title':
 					this.title = row[1];
+					app.topbar.updateTabbar();
 					break;
 
 				case 'c':
 				case 'chat':
 					if (/[a-zA-Z0-9]/.test(row[1].charAt(0))) row[1] = ' '+row[1];
 					this.addChat(row[1], row.slice(2).join('|'));
+					break;
+
+				case 'tc':
+					if (/[a-zA-Z0-9]/.test(row[2].charAt(0))) row[2] = ' '+row[2];
+					this.addChat(row[2], row.slice(3).join('|'), false, row[1]);
 					break;
 
 				case 'b':
@@ -783,6 +828,13 @@
 					});
 					break;
 
+				case 'tournament':
+				case 'tournaments':
+					if (!this.tournamentBox) this.tournamentBox = new TournamentBox(this, this.$tournamentWrapper);
+					if (!this.tournamentBox.parseMessage(row.slice(1), row[0] === 'tournaments'))
+						break;
+					// fallthrough in case of unparsed message
+
 				case '':
 					this.$chat.append('<div class="notice">' + Tools.escapeHTML(row.slice(1).join('|')) + '</div>');
 					break;
@@ -792,6 +844,9 @@
 					break;
 				}
 			}
+		},
+		tournamentButton: function(val, button) {
+			if (this.tournamentBox) this.tournamentBox[$(button).data('type')](val, button);
 		},
 		parseUserList: function(userList) {
 			this.userCount = {};
@@ -902,7 +957,7 @@
 			}
 			this.$joinLeave.html('<small style="color: #555555">' + message + '</small>');
 		},
-		addChat: function(name, message, pm) {
+		addChat: function(name, message, pm, deltatime) {
 			var userid = toUserid(name);
 			var color = hashColor(userid);
 
@@ -921,12 +976,13 @@
 				// PMs already notify in the main menu; no need to make them notify again
 				var isHighlighted = this.getHighlight(message);
 				if (isHighlighted) {
-					this.notifyOnce("Mentioned by "+name, "\""+message+"\"", 'highlight');
+					var notifyTitle = "Mentioned by "+name+(this.id === 'lobby' ? '' : " in "+this.title);
+					this.notifyOnce(notifyTitle, "\""+message+"\"", 'highlight');
 				}
 			}
 			var highlight = isHighlighted ? ' highlighted' : '';
 			var chatDiv = '<div class="chat' + highlight + '">';
-			var timestamp = ChatRoom.getTimestamp('lobby');
+			var timestamp = ChatRoom.getTimestamp('lobby', deltatime);
 			if (name.charAt(0) !== ' ') clickableName = '<small>' + Tools.escapeHTML(name.charAt(0)) + '</small>'+clickableName;
 			var self = this;
 			var outputChat = function() {
@@ -945,6 +1001,7 @@
 				} else {
 					outputChat();
 				}
+				Storage.logChat(this.id, '* '+name+' '+message);
 			} else if (message.substr(0,5) === '/mee ') {
 				message = message.substr(5);
 				if (showme) {
@@ -952,8 +1009,10 @@
 				} else {
 					outputChat();
 				}
+				Storage.logChat(this.id, '* '+name+message);
 			} else if (message.substr(0,10) === '/announce ') {
 				this.$chat.append(chatDiv + timestamp + '<strong style="' + color + '">' + clickableName + ':</strong> <span class="message-announce">' + Tools.parseMessage(message.substr(10), name) + '</span></div>');
+				Storage.logChat(this.id, ''+name+': /announce '+message);
 			} else if (message.substr(0,6) === '/warn ') {
 				app.addPopup(RulesPopup, {warning: message.substr(6)});
 			} else if (message.substr(0,14) === '/data-pokemon ') {
@@ -968,14 +1027,19 @@
 				// Normal chat message.
 				if (message.substr(0,2) === '//') message = message.substr(1);
 				outputChat();
+				Storage.logChat(this.id, ''+name+': '+message);
 			}
 		}
 	}, {
-		getTimestamp: function(section) {
+		getTimestamp: function(section, deltatime) {
 			var pref = Tools.prefs('timestamps') || {};
 			var sectionPref = ((section === 'pms') ? pref.pms : pref.lobby) || 'off';
 			if ((sectionPref === 'off') || (sectionPref === undefined)) return '';
-			var date = new Date();
+			if (!deltatime || isNaN(deltatime)) {
+				var date = new Date();
+			} else {
+				var date = new Date(Date.now() - deltatime * 1000);
+			}
 			var components = [ date.getHours(), date.getMinutes() ];
 			if (sectionPref === 'seconds') {
 				components.push(date.getSeconds());
@@ -1026,8 +1090,7 @@
 			'&': 2,
 			'@': 1,
 			'%': 1,
-			'$': 1,
-			'♠': 1,
+			'\u2605': 1,
 			'+': 1,
 			' ': 0,
 			'!': 0,
@@ -1039,12 +1102,11 @@
 			'&': 3,
 			'@': 4,
 			'%': 5,
-			'$': 6,
-			'♠': 7,
-			'+': 8,
-			' ': 9,
-			'!': 10,
-			'‽': 11
+			'\u2605': 6,
+			'+': 7,
+			' ': 8,
+			'!': 9,
+			'‽': 10
 		},
 		updateUserCount: function() {
 			var users = Math.max(this.room.userCount.users || 0, this.room.userCount.globalUsers || 0);
