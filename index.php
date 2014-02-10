@@ -22,22 +22,6 @@
 		</script><![endif]-->
 	</head>
 	<body>
-		<script>
-		<?php
-			$h = "amethyst-server.no-ip.org:8000";
-			if (isset($_GET['h'])) {
-				$h = $_GET['h'];
-			}
-			if (substr_count($h, ":") == 0) {
-				$h = $h . ":8000";
-			}
-			$explosion = explode(":", $h);
-			$host = $explosion[0];
-			$port = $explosion[1];
-			echo "var host = '", $host, "';";
-			echo "var port = ", $port, ";";
-		?>
-		</script>
 
  		<!-- Chrome Frame -->
 		<!--[if lte IE 8]>
@@ -81,7 +65,7 @@
 			document.getElementById('loading-message').innerHTML = 'If the client is taking a long time to load, try refreshing in a few minutes. If it still doesn\'t work, Pok&eacute;mon Showdown may be down for maintenance. We apologize for the inconvenience.<br /><br />'+document.getElementById('loading-message').innerHTML;
 		</script>
 
-		<script src="http://play.pokemonshowdown.com/js/config.js?f3c5f1ea"></script>
+		<script src="js/config.js?f3c5f1ea"></script>
 		<script src="/js/battledata.js?9d1bc43c"></script>
 		<script src="./data/pokedex-mini.js"></script>
 		<script src="http://play.pokemonshowdown.com/js/battle.js?a6f6824f"></script>
@@ -94,6 +78,7 @@
 		<script src="/js/client-chat.js?f2fe50ae"></script>
 		<script src="http://play.pokemonshowdown.com/js/client-battle.js?059046f3"></script>
 		<script src="http://play.pokemonshowdown.com/js/client-rooms.js?ac66d1b5"></script>
+		<script src="js/storage.js"></script>
 		<script src="http://play.pokemonshowdown.com/data/graphics.js?b6cff022"></script>
 
 		<script>
